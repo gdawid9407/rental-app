@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Dodaliśmy useEffect
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import multiMonthPlugin from '@fullcalendar/multimonth';
 import { X, Receipt, FileText, Repeat, Trash2 } from 'lucide-react';
+import { supabase } from '../lib/supabase'; // TO JEST KLUCZOWE POŁĄCZENIE
 
 export default function RentalCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
