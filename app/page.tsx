@@ -1,65 +1,114 @@
-import Image from "next/image";
+"use client";
+import React, { useState } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import multiMonthPlugin from '@fullcalendar/multimonth';
+import { X } from 'lucide-react'; // Ikona zamknięcia
 
-export default function Home() {
+export default function RentalCalendar() {
+  // --- STAN APLIKACJI (Pamięć) ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [noteTitle, setNoteTitle] = useState("");
+  const [notes, setNotes] = useState<any[]>([]); // Tu przechowujemy dodane notatki
+
+  // Funkcja otwierająca okienko po kliknięciu w datę
+  const handleDateClick = (info: any) => {
+    setSelectedDate(info.dateStr);
+    setIsModalOpen(true);
+  };
+
+  // Funkcja zapisująca notatkę
+  const saveNote = () => {
+    if (noteTitle.trim() === "") return;
+
+    const newNote = {
+      title: `📝 ${noteTitle}`,
+      start: selectedDate,
+      allDay: true,
+      backgroundColor: '#f3f4f6',
+      textColor: '#1f2937',
+      borderColor: '#e5e7eb'
+    };
+
+    setNotes([...notes, newNote]); // Dodaj nową notatkę do listy
+    setNoteTitle(""); // Wyczyść pole tekstowe
+    setIsModalOpen(false); // Zamknij okienko
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gray-50 md:p-12">
+      <div className="mx-auto max-w-6xl bg-white md:rounded-2xl md:shadow-2xl border-gray-200 overflow-hidden relative">
+        
+        {/* NAGŁÓWEK */}
+        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Rental App</h1>
+            <p className="text-sm text-gray-500">Kliknij w dzień, aby dodać notatkę</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* KALENDARZ */}
+        <div className="p-4 md:p-8">
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin, multiMonthPlugin]}
+            initialView="dayGridMonth"
+            locale="pl"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'multiMonthYear,dayGridMonth,dayGridWeek'
+            }}
+            events={notes} // Wyświetlanie zapisanych notatek
+            dateClick={handleDateClick}
+            height="auto"
+            selectable={true}
+          />
         </div>
-      </main>
-    </div>
+
+        {/* --- MODAL (OKIENKO) W STYLU macOS --- */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md m-4 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="font-semibold text-gray-900">Nowa notatka: {selectedDate}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Treść notatki</label>
+                <input 
+                  type="text" 
+                  autoFocus
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  placeholder="Co chcesz zapisać?"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && saveNote()}
+                />
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Anuluj
+                </button>
+                <button 
+                  onClick={saveNote}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
+                >
+                  Zapisz notatkę
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
