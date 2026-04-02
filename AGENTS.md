@@ -1,5 +1,18 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Rental App - Agent Guidelines
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+## Context
+
+Aplikacja do zarządzania najmem mieszkań.
+Stack: Next.js 15 (App Router), Supabase, Lucide React, FullCalendar.
+
+## Coding Rules
+
+- Strictly TypeScript. No `any` types.
+- UI in Polish, Code/Variables in English.
+- Use Tailwind CSS for styling.
+- Keep components small and modular.
+
+## Data Structure
+
+- Calendar Entries are stored in `calendar_entries` table in Supabase.
+- Shared types are in `types/calendar.ts`.

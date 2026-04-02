@@ -6,19 +6,20 @@ import interactionPlugin from '@fullcalendar/interaction';
 import multiMonthPlugin from '@fullcalendar/multimonth';
 import { X, Receipt, FileText, Repeat, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import połączenia
+import type { CalendarEvent, EntryType, PaymentStatus, DateClickInfo, EventClickInfo } from '../types/calendar';
 
 export default function RentalCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState("");
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   // Pola formularza
-  const [entryType, setEntryType] = useState<'payment' | 'note'>('payment');
+  const [entryType, setEntryType] = useState<EntryType>('payment');
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [status, setStatus] = useState<'nadchodzi' | 'do_zapłaty' | 'opłacone'>('do_zapłaty');
+  const [status, setStatus] = useState<PaymentStatus>('do_zapłaty');
   const [isRecurring, setIsRecurring] = useState(false);
 
   // 1. POBIERANIE DANYCH Z SUPABASE PRZY STARCIE
@@ -53,13 +54,13 @@ export default function RentalCalendar() {
     fetchEvents();
   }, []);
 
-  const handleDateClick = (info: any) => {
+  const handleDateClick = (info: DateClickInfo) => {
     resetForm();
     setSelectedDate(info.dateStr);
     setIsModalOpen(true);
   };
 
-  const handleEventClick = (clickInfo: any) => {
+  const handleEventClick = (clickInfo: EventClickInfo) => {
     const event = clickInfo.event;
     setSelectedEventId(event.id);
     setSelectedDate(event.startStr);
@@ -209,7 +210,7 @@ export default function RentalCalendar() {
                     <select 
                       className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm"
                       value={status}
-                      onChange={(e: any) => setStatus(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as PaymentStatus)}
                     >
                       <option value="nadchodzi">🟡 Nadchodzi</option>
                       <option value="do_zapłaty">🔴 Do zapłaty</option>
