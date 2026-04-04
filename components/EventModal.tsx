@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Receipt, FileText, Trash2 } from 'lucide-react';
+import { X, Receipt, FileText, Trash2, Repeat } from 'lucide-react';
 import type { EntryType, PaymentStatus, CalendarEvent } from '../types/calendar';
 
 // Propsy dla modala
@@ -10,6 +10,8 @@ export interface ModalEventState {
   amount?: string;
   status?: PaymentStatus;
   isRecurring?: boolean;
+  isPlanned?: boolean;
+  recurringGroupId?: string | null;
 }
 
 interface EventModalProps {
@@ -17,8 +19,8 @@ interface EventModalProps {
   onClose: () => void;
   selectedDate: string;
   selectedEvent: ModalEventState | null;
-  onSave: (id: string | null, payload: any) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onSave: (id: string | null, payload: any, isRecurring?: boolean) => Promise<void>;
+  onDelete: (id: string, cascadeDeleteData?: { recurringGroupId: string, startDate: string }) => Promise<void>;
 }
 
 export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSave, onDelete }: EventModalProps) {
@@ -35,10 +37,10 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
         setTitle(selectedEvent.title?.split(' - ')[0].replace('💰 ', '').replace('📝 ', '') || "");
         setEntryType(selectedEvent.type || 'payment');
         if (selectedEvent.type === 'payment') {
-          setAmount(selectedEvent.amount || "");
+          setAmount(selectedEvent.amount?.toString() || "");
           setStatus(selectedEvent.status || 'do_zapłaty');
         }
-        setIsRecurring(selectedEvent.isRecurring || false);
+        setIsRecurring(false); // zazwyczaj nie edytujemy cyklu w ten sposób
       } else {
         // Tryb tworzenia
         setTitle("");
@@ -55,22 +57,43 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
   const handleSave = async () => {
     if (!title) return;
     
+    // kwota do ustalenia = null
+    const finalAmount = amount ? parseFloat(amount) : null;
+    
+    // title dla payload
+    let finalTitle = "";
+    if (entryType === 'payment') {
+      finalTitle = finalAmount ? `💰 ${title} - ${finalAmount} zł` : `💰 ${title} - Do ustalenia`;
+    } else {
+      finalTitle = `📝 ${title}`;
+    }
+
     const payload = {
-      title: entryType === 'payment' ? `💰 ${title} - ${amount} zł` : `📝 ${title}`,
+      title: finalTitle,
       start_date: selectedDate,
       entry_type: entryType,
-      amount: amount ? parseFloat(amount) : null,
+      amount: finalAmount,
       status: status,
-      is_recurring: isRecurring
+      is_planned: finalAmount === null ? true : false
+      // recurring_group_id handleowane w hooku
     };
 
-    await onSave(selectedEvent?.id || null, payload);
+    await onSave(selectedEvent?.id || null, payload, isRecurring);
     onClose();
   };
 
   const handleDelete = async () => {
     if (selectedEvent?.id) {
-      await onDelete(selectedEvent.id);
+      if (selectedEvent.recurringGroupId) {
+        const deleteFuture = window.confirm("Ten wpis jest częścią cyklu.\nOK = Usuń ten wpis i wszystkie PRZYSZŁE z tej serii\nAnuluj = Usuń TYLKO ten jeden wpis");
+        if (deleteFuture) {
+          await onDelete(selectedEvent.id, { recurringGroupId: selectedEvent.recurringGroupId, startDate: selectedDate });
+        } else {
+          await onDelete(selectedEvent.id);
+        }
+      } else {
+        await onDelete(selectedEvent.id);
+      }
       onClose();
     }
   };
@@ -130,6 +153,20 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
                 <option value="opłacone">🟢 Opłacone</option>
               </select>
             </div>
+          )}
+          
+          {!selectedEvent?.id && entryType === 'payment' && (
+            <label className="flex items-center gap-2 mt-4 cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+              />
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <Repeat size={16} /> Powtarzaj ten wpis co miesiąc (przez rok)
+              </span>
+            </label>
           )}
         </div>
 

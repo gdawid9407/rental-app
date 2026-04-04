@@ -9,10 +9,13 @@ export interface CalendarEvent {
   backgroundColor: string;
   textColor: string;
   borderColor: string;
+  classNames?: string[];
   extendedProps: {
     type: EntryType;
     status: PaymentStatus;
     amount: number | null;
+    isPlanned: boolean;
+    recurringGroupId: string | null;
   };
 }
 

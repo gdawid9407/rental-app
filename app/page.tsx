@@ -29,25 +29,27 @@ export default function RentalCalendar() {
       type: event.extendedProps.type,
       amount: event.extendedProps.amount?.toString(),
       status: event.extendedProps.status,
+      isPlanned: event.extendedProps.isPlanned,
+      recurringGroupId: event.extendedProps.recurringGroupId,
     });
     setIsModalOpen(true);
   };
 
-  const handleSave = async (id: string | null, payload: any) => {
+  const handleSave = async (id: string | null, payload: any, isRecurring?: boolean) => {
     try {
       if (id) {
         await updateEvent(id, payload);
       } else {
-        await addEvent(payload);
+        await addEvent(payload, isRecurring);
       }
     } catch (error: any) {
       alert("Błąd: " + error.message);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, cascadeDeleteData?: { recurringGroupId: string, startDate: string }) => {
     try {
-      await deleteEvent(id);
+      await deleteEvent(id, cascadeDeleteData);
     } catch (error: any) {
       alert("Błąd: " + error.message);
     }
