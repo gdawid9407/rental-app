@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { useCalendarEvents, type DeleteMode } from '../hooks/useCalendarEvents';
 import { Header } from '../components/Header';
 import { Calendar } from '../components/Calendar';
 import { EventModal, type ModalEventState } from '../components/EventModal';
@@ -35,21 +35,21 @@ export default function RentalCalendar() {
     setIsModalOpen(true);
   };
 
-  const handleSave = async (id: string | null, payload: any, isRecurring?: boolean) => {
+  const handleSave = async (id: string | null, payload: any, recurringMonths?: number, baseTitle?: string) => {
     try {
       if (id) {
         await updateEvent(id, payload);
       } else {
-        await addEvent(payload, isRecurring);
+        await addEvent(payload, recurringMonths, baseTitle);
       }
     } catch (error: any) {
       alert("Błąd: " + error.message);
     }
   };
 
-  const handleDelete = async (id: string, cascadeDeleteData?: { recurringGroupId: string, startDate: string }) => {
+  const handleDelete = async (id: string, mode: DeleteMode, extraData?: any) => {
     try {
-      await deleteEvent(id, cascadeDeleteData);
+      await deleteEvent(id, mode, extraData);
     } catch (error: any) {
       alert("Błąd: " + error.message);
     }

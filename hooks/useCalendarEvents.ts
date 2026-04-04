@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { CalendarEvent } from '../types/calendar';
 
+export type DeleteMode = 'single' | 'series' | 'type' | 'all-planned';
+
 export function useCalendarEvents() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,24 +42,33 @@ export function useCalendarEvents() {
     fetchEvents();
   }, []);
 
-  const addEvent = async (payload: any, isRecurring?: boolean) => {
+  const addEvent = async (payload: any, recurringMonths: number = 0, baseTitle: string = "") => {
     let payloads = [payload];
 
-    if (isRecurring && payload.start_date) {
+    if (recurringMonths > 0 && payload.start_date) {
       const groupId = crypto.randomUUID();
       payload.recurring_group_id = groupId;
       
       const firstDate = new Date(payload.start_date);
-      for (let i = 1; i < 12; i++) {
+      for (let i = 1; i <= recurringMonths; i++) {
         const nextDate = new Date(firstDate);
         nextDate.setMonth(nextDate.getMonth() + i);
         
-        // Obliczamy nowy tytuł dla planowanych, jeśli brak konkretnej kwoty
-        // jeśli oryginalny payload ma null amount, tytuł będzie w stylu "Kwota do ustalenia"
+        // Zawsze usuwamy kwotę dla przyszłych wystąpień i wymuszamy "Do ustalenia" i "planowany"
+        let futureTitle = "";
+        if (payload.entry_type === 'payment') {
+          futureTitle = `💰 ${baseTitle} - Do ustalenia`;
+        } else {
+          futureTitle = `📝 ${baseTitle}`;
+        }
+
         payloads.push({
           ...payload,
+          title: futureTitle,
+          amount: null,
+          status: 'planowany',
           start_date: nextDate.toISOString().split('T')[0],
-          is_planned: true // Przyszłe kopie oznaczamy domyślnie jako planowane
+          is_planned: true
         });
       }
     }
@@ -73,20 +84,52 @@ export function useCalendarEvents() {
     await fetchEvents();
   };
 
-  const deleteEvent = async (id: string, cascadeDeleteData?: { recurringGroupId: string, startDate: string }) => {
-    if (cascadeDeleteData) {
-      // Usunięcie bieżącego i wszystkich przyszłych w serii
-      const { error } = await supabase
-        .from('calendar_entries')
-        .delete()
-        .eq('recurring_group_id', cascadeDeleteData.recurringGroupId)
-        .gte('start_date', cascadeDeleteData.startDate);
-      if (error) throw new Error(error.message);
-    } else {
-      // Usunięcie tylko tego jednego
-      const { error } = await supabase.from('calendar_entries').delete().eq('id', id);
-      if (error) throw new Error(error.message);
+  const deleteEvent = async (
+    id: string,
+    mode: DeleteMode = 'single',
+    extraData?: { recurringGroupId?: string | null, startDate?: string, baseTitle?: string, entryType?: string }
+  ) => {
+    switch (mode) {
+      case 'series':
+        if (extraData?.recurringGroupId && extraData?.startDate) {
+          const { error } = await supabase
+            .from('calendar_entries')
+            .delete()
+            .eq('recurring_group_id', extraData.recurringGroupId)
+            .gte('start_date', extraData.startDate);
+          if (error) throw new Error(error.message);
+        }
+        break;
+      case 'type':
+        if (extraData?.baseTitle && extraData?.startDate) {
+          const prefix = extraData.entryType === 'payment' ? '💰' : '📝';
+          const searchTitle = `${prefix} ${extraData.baseTitle}%`;
+          const { error } = await supabase
+            .from('calendar_entries')
+            .delete()
+            .eq('is_planned', true)
+            .ilike('title', searchTitle)
+            .gte('start_date', extraData.startDate);
+          if (error) throw new Error(error.message);
+        }
+        break;
+      case 'all-planned':
+        if (extraData?.startDate) {
+          const { error } = await supabase
+            .from('calendar_entries')
+            .delete()
+            .eq('is_planned', true)
+            .gte('start_date', extraData.startDate);
+          if (error) throw new Error(error.message);
+        }
+        break;
+      case 'single':
+      default:
+        const { error: err } = await supabase.from('calendar_entries').delete().eq('id', id);
+        if (err) throw new Error(err.message);
+        break;
     }
+    
     await fetchEvents();
   };
 

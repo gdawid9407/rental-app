@@ -1,5 +1,5 @@
 export type EntryType = 'payment' | 'note';
-export type PaymentStatus = 'nadchodzi' | 'do_zapłaty' | 'opłacone';
+export type PaymentStatus = 'planowany' | 'do_zapłaty' | 'opłacone';
 
 export interface CalendarEvent {
   id: string;
