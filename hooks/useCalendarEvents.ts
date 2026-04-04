@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { CalendarEvent, BILL_CATEGORIES } from '../types/calendar';
+import { CalendarEvent, BILL_CATEGORIES, TimeSlot } from '../types/calendar';
 
 /*
   INSTRUKCJE SQL DO URUCHOMIENIA W PANELU SUPABASE:
@@ -81,8 +81,9 @@ export function useCalendarEvents() {
             isPlanned: item.is_planned || false,
             recurringGroupId: item.recurring_group_id || null,
             billType: item.bill_type || 'inny',
-            rawTitle: item.title, // przechowujemy czysty tekst do edycji
-            propertyId: item.property_id || null
+            rawTitle: item.title,
+            propertyId: item.property_id || null,
+            timeSlot: (item.time_slot as TimeSlot) || 'rano'
           }
         };
       });

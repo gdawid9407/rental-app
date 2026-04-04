@@ -7,7 +7,9 @@ import { Header } from '../components/Header';
 import { Calendar } from '../components/Calendar';
 import { EventModal, type ModalEventState } from '../components/EventModal';
 import { BILL_CATEGORIES, type BillType } from '../types/calendar';
-import type { DateClickInfo, EventClickInfo } from '../types/calendar';export type ModuleType = 'calendar' | 'analyzer' | 'deals' | 'stats' | 'database';
+import type { DateClickInfo, EventClickInfo } from '../types/calendar';
+
+export type ModuleType = 'calendar' | 'analyzer' | 'deals' | 'stats' | 'database';
 
 export default function RentalCalendar() {
   const { events, isLoading, addEvent, updateEvent, deleteEvent } = useCalendarEvents();
@@ -19,6 +21,7 @@ export default function RentalCalendar() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("rano");
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
 
   // Zmienne stanu autoryzacji
@@ -71,6 +74,7 @@ export default function RentalCalendar() {
   const handleDateClick = (info: DateClickInfo) => {
     setSelectedEvent(null);
     setSelectedDate(info.dateStr);
+    setSelectedTimeSlot(info.timeSlot || 'rano');
     setIsModalOpen(true);
   };
 
@@ -87,6 +91,7 @@ export default function RentalCalendar() {
       recurringGroupId: event.extendedProps.recurringGroupId,
       billType: event.extendedProps.billType,
       rawTitle: event.extendedProps.rawTitle,
+      timeSlot: event.extendedProps.timeSlot,
     });
     setIsModalOpen(true);
   };
@@ -357,6 +362,7 @@ export default function RentalCalendar() {
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
               selectedDate={selectedDate}
+              initialTimeSlot={selectedTimeSlot}
               selectedEvent={selectedEvent}
               properties={properties}
               onSave={handleSave}

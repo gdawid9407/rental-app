@@ -1,5 +1,6 @@
 export type EntryType = 'payment' | 'note';
 export type PaymentStatus = 'planowany' | 'do_zapłaty' | 'opłacone';
+export type TimeSlot = 'rano' | 'poludnie' | 'wieczor' | 'noc';
 
 export const BILL_CATEGORIES = [
   { id: 'gaz', label: 'Gaz', icon: '🔥' },
@@ -30,6 +31,7 @@ export interface CalendarEvent {
     recurringGroupId: string | null;
     billType?: BillType;
     propertyId?: string | null;
+    timeSlot?: TimeSlot;
   };
 }
 
@@ -42,6 +44,7 @@ export interface Property {
 
 export interface DateClickInfo {
   dateStr: string;
+  timeSlot?: TimeSlot;
 }
 
 export interface EventClickInfo {

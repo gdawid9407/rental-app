@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle, GripHorizontal } from 'lucide-react';
+import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle, GripHorizontal, ChevronDown } from 'lucide-react';
 import Draggable from 'react-draggable';
-import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType, Property } from '../types/calendar';
+import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType, Property, TimeSlot } from '../types/calendar';
 import type { DeleteMode } from '../hooks/useCalendarEvents';
 
 export interface ModalEventState {
   id?: string | null;
-  title?: string; // Tytuł po sformatowaniu lub czysty
-  rawTitle?: string; // Prawdziwy, nie tknięty string
+  title?: string;
+  rawTitle?: string;
   type?: EntryType;
   amount?: string;
   status?: PaymentStatus;
@@ -15,25 +15,28 @@ export interface ModalEventState {
   recurringGroupId?: string | null;
   billType?: BillType;
   propertyId?: string | null;
+  timeSlot?: TimeSlot;
 }
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string;
+  initialTimeSlot?: string;
   selectedEvent: ModalEventState | null;
   properties: Property[];
   onSave: (id: string | null, payload: any, recurringMonths?: number) => Promise<void>;
   onDelete: (id: string, mode: DeleteMode, extraData?: { startDate?: string, billType?: string }) => Promise<void>;
 }
 
-export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, properties, onSave, onDelete }: EventModalProps) {
+export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, selectedEvent, properties, onSave, onDelete }: EventModalProps) {
   const [entryType, setEntryType] = useState<EntryType>('payment');
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<PaymentStatus>('do_zapłaty');
   const [billType, setBillType] = useState<BillType>('gaz');
   const [propertyId, setPropertyId] = useState<string>('');
+  const [timeSlot, setTimeSlot] = useState<TimeSlot>('poludnie');
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
   const [isDeleting, setIsDeleting] = useState(false);
@@ -52,6 +55,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
           setBillType(selectedEvent.billType || 'gaz');
         }
         setPropertyId(selectedEvent.propertyId || '');
+        setTimeSlot((selectedEvent.timeSlot as TimeSlot) || 'poludnie');
         setRecurringMonths(0);
       } else {
         setTitle("");
@@ -60,6 +64,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
         setStatus('do_zapłaty');
         setBillType('gaz');
         setPropertyId('');
+        setTimeSlot((initialTimeSlot as TimeSlot) || 'poludnie');
         setRecurringMonths(0);
       }
     }
@@ -100,7 +105,8 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
       status: status,
       is_planned: finalAmount === null ? true : false,
       bill_type: entryType === 'payment' ? billType : null,
-      property_id: propertyId === '' ? null : propertyId
+      property_id: propertyId === '' ? null : propertyId,
+      time_slot: timeSlot
     };
 
     await onSave(selectedEvent?.id || null, payload, recurringMonths);
@@ -216,35 +222,65 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Mieszkanie (opcjonalnie)</label>
-                  <select 
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer"
-                    value={propertyId}
-                    onChange={(e) => setPropertyId(e.target.value)}
-                  >
-                    <option value="">-- Brak / Ogólne --</option>
-                    {properties.map(prop => (
-                      <option key={prop.id} value={prop.id}>
-                        {prop.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select 
+                      className="w-full px-4 py-2 pr-10 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer"
+                      value={propertyId}
+                      onChange={(e) => {
+                        if (e.target.value === '__new__') {
+                          onClose();
+                          window.location.href = '/account';
+                        } else {
+                          setPropertyId(e.target.value);
+                        }
+                      }}
+                    >
+                      <option value="">— Brak / Ogólne —</option>
+                      {properties.map(prop => (
+                        <option key={prop.id} value={prop.id}>{prop.name}</option>
+                      ))}
+                      <option value="__new__">➕ Dodaj nowe mieszkanie...</option>
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Kategoria</label>
-                  <select 
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer"
-                    value={billType}
-                    onChange={(e) => setBillType(e.target.value as BillType)}
-                  >
-                    {BILL_CATEGORIES.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select 
+                      className="w-full px-4 py-2 pr-10 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer"
+                      value={billType}
+                      onChange={(e) => setBillType(e.target.value as BillType)}
+                    >
+                      {BILL_CATEGORIES.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
+                  </div>
                 </div>
               </div>
             )}
-            
+
+            {/* Pora dnia — rozwijane */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Pora dnia <span className="font-normal text-gray-400 dark:text-slate-500">(opcjonalnie)</span></label>
+              <div className="relative">
+                <select
+                  value={timeSlot}
+                  onChange={(e) => setTimeSlot(e.target.value as TimeSlot)}
+                  className="w-full px-4 py-2 pr-10 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer text-sm"
+                >
+                  <option value="rano">🌅 Rano (6:00–12:00)</option>
+                  <option value="poludnie">☀️ Południe (12:00–18:00)</option>
+                  <option value="wieczor">🌆 Wieczór (18:00–00:00)</option>
+                  <option value="noc">🌙 Noc (0:00–6:00)</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">
                 {entryType === 'note' 
@@ -254,7 +290,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
               {entryType === 'note' ? (
                 <textarea 
                   className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-y min-h-[120px] transition-colors text-gray-900 dark:text-white"
-                  placeholder="Wpisz tutaj długą notatkę..."
+                  placeholder="Wpisz treść notatki..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   rows={5}
