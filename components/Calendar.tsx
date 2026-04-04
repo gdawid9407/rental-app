@@ -50,8 +50,51 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
   // Naprawa polskiego defaulta - pierwsza litera duża
   const centerText = viewTitle ? viewTitle.charAt(0).toUpperCase() + viewTitle.slice(1) : '';
 
+  // Handler wychwytujący kliknięcie w tytuły miesięcy na widoku rocznym i wymuszający render konkretnego miesiąca
+  const handleDelegatedClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const titleElement = target.closest('.fc-multimonth-title');
+    
+    // Jeśli kliknęliśmy w tytuł i jesteśmy w widoku wielomiesięcznym
+    if (titleElement && viewType === 'multiMonthYear') {
+      const monthContainer = titleElement.closest('.fc-multimonth-month');
+      // Próbujemy wyciągnąć pierwszą datę z któregoś z pustych, technicznych dni wygenerowanego miesiąca
+      const dayCell = monthContainer?.querySelector('.fc-day[data-date]');
+      const cellDate = dayCell?.getAttribute('data-date');
+      
+      if (cellDate && calendarRef.current) {
+        calendarRef.current.getApi().changeView('dayGridMonth', cellDate);
+      }
+    }
+  };
+
   return (
     <div className="p-4 md:p-8">
+      {/* Dynamicznie wymuszamy kursor pointer dla tytułów miesięcy FullCalendara w widoku rocznym */}
+      <style>{`
+        .fc-multimonth-title {
+          cursor: pointer !important;
+          transition: color 0.15s ease-in-out;
+        }
+        .fc-multimonth-title:hover {
+          color: #2563eb !important;
+        }
+        
+        /* Eleganckie podświetlenie bieżącego dnia */
+        .fc .fc-day-today {
+          background-color: #f0fdf4 !important; /* Delikatna, odświeżająca zieleń (bg-green-50) odcinająca się od niebieskiego UI */
+        }
+        .fc .fc-day-today .fc-daygrid-day-number {
+          color: #166534 !important; /* text-green-800 */
+          font-weight: 800 !important;
+          background-color: #dcfce7 !important; /* bg-green-100 */
+          border-radius: 9999px;
+          min-width: 24px;
+          text-align: center;
+          margin: 4px;
+        }
+      `}</style>
+
       {/* Bardziej funkcjonalna auto-adaptująca się Nawigacja */}
       <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm select-none">
         <button 
@@ -75,7 +118,7 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 overflow-hidden" onClick={handleDelegatedClick}>
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin, multiMonthPlugin]}
