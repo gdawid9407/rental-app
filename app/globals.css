@@ -1,16 +1,28 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --fc-border-color: #e5e7eb; /* Bardzo jasne linie */
-  --fc-today-bg-color: #f8fafc; /* Subtelne wyróżnienie dzisiaj */
+  --fc-border-color: #e5e7eb;
+  --fc-today-bg-color: #f8fafc;
   --fc-button-bg-color: #ffffff;
   --fc-button-border-color: #e5e7eb;
   --fc-button-text-color: #374151;
   --fc-button-active-bg-color: #eff6ff;
+  --fc-page-bg-color: #ffffff;
+}
+
+.dark {
+  --fc-border-color: #1e293b;
+  --fc-today-bg-color: #0f172a;
+  --fc-button-bg-color: #0f172a;
+  --fc-button-border-color: #334155;
+  --fc-button-text-color: #f1f5f9;
+  --fc-button-active-bg-color: #1e293b;
+  --fc-page-bg-color: #020617;
 }
 
 /* Usunięcie obramowania wokół całego kalendarza - styl macOS */
@@ -26,7 +38,11 @@
   text-transform: uppercase;
   font-size: 0.75rem;
   color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--fc-border-color);
+}
+
+.dark .fc .fc-col-header-cell {
+  color: #94a3b8;
 }
 
 /* Przyciski jak w macOS */
@@ -42,6 +58,10 @@
   background-color: #f9fafb !important;
 }
 
+.dark .fc .fc-button:hover {
+  background-color: #1e293b !important;
+}
+
 .fc .fc-button-primary:not(:disabled).fc-button-active {
   background-color: #3b82f6 !important; /* Klasyczny błękit Apple */
   color: white !important;
@@ -53,7 +73,11 @@
 }
 
 .fc-daygrid-day:hover {
-  background-color: #f3f4f6; /* Efekt hover przy najechaniu na dzień */
+  background-color: #f3f4f6;
+}
+
+.dark .fc-daygrid-day:hover {
+  background-color: #1e293b;
 }
 
 /* Stylizacja widoku wielomiesięcznego (Rok) */
@@ -75,4 +99,8 @@
   color: #1f2937 !important;
   margin-bottom: 10px !important;
   text-align: left !important;
+}
+
+.dark .fc-multimonth-title {
+  color: #f1f5f9 !important;
 }

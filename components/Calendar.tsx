@@ -79,11 +79,18 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
         .fc-multimonth-title:hover {
           color: #2563eb !important;
         }
+        .dark .fc-multimonth-title:hover {
+          color: #60a5fa !important;
+        }
         
         /* Eleganckie podświetlenie bieżącego dnia */
         .fc .fc-day-today {
-          background-color: #f0fdf4 !important; /* Delikatna, odświeżająca zieleń (bg-green-50) odcinająca się od niebieskiego UI */
+          background-color: #f0fdf4 !important; /* Delikatna, odświeżająca zieleń */
         }
+        .dark .fc .fc-day-today {
+          background-color: #064e3b !important; /* text-emerald-900 w dark mode */
+        }
+
         .fc .fc-day-today .fc-daygrid-day-number {
           color: #166534 !important; /* text-green-800 */
           font-weight: 800 !important;
@@ -93,32 +100,36 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
           text-align: center;
           margin: 4px;
         }
+        .dark .fc .fc-day-today .fc-daygrid-day-number {
+          color: #a7f3d0 !important; /* text-green-200 */
+          background-color: #065f46 !important; /* bg-green-800 */
+        }
       `}</style>
 
       {/* Bardziej funkcjonalna auto-adaptująca się Nawigacja */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm select-none">
+      <div className="flex justify-between items-center mb-6 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm select-none transition-colors duration-200">
         <button 
           onClick={handlePrev} 
-          className="flex items-center gap-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all font-medium text-sm w-44 justify-start"
+          className="flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-amber-400 hover:bg-blue-50 dark:hover:bg-slate-800 px-4 py-2 rounded-xl transition-all font-medium text-sm w-44 justify-start"
         >
           <ChevronLeft size={18} />
           <span className="hidden sm:inline-block">{labels.prev}</span>
         </button>
         
-        <div className="font-bold text-xl md:text-2xl text-gray-900 text-center flex-1">
+        <div className="font-bold text-xl md:text-2xl text-gray-900 dark:text-white text-center flex-1">
           {centerText}
         </div>
         
         <button 
           onClick={handleNext} 
-          className="flex items-center gap-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all font-medium text-sm w-44 justify-end"
+          className="flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-amber-400 hover:bg-blue-50 dark:hover:bg-slate-800 px-4 py-2 rounded-xl transition-all font-medium text-sm w-44 justify-end"
         >
           <span className="hidden sm:inline-block">{labels.next}</span>
           <ChevronRight size={18} />
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 overflow-hidden" onClick={handleDelegatedClick}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 overflow-hidden transition-colors duration-200" onClick={handleDelegatedClick}>
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin, multiMonthPlugin]}
