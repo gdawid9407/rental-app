@@ -22,6 +22,8 @@ export default function RentalCalendar() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   // Sprawdzanie sesji użytkownika
   useEffect(() => {
@@ -41,11 +43,23 @@ export default function RentalCalendar() {
     };
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setAuthError("Błędny email lub hasło");
+    setAuthSuccess('');
+
+    if (isRegisterMode) {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setAuthError(error.message);
+      } else {
+        setAuthSuccess("Sukces! Zarejestrowano pomyślnie. Zaloguj się.");
+        setIsRegisterMode(false);
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setAuthError("Błędny email lub hasło");
+    }
   };
 
   const handleDateClick = (info: DateClickInfo) => {
@@ -105,16 +119,26 @@ export default function RentalCalendar() {
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-8 pt-10 pb-10">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Rental App</h1>
-            <p className="text-sm text-gray-500">Zaloguj się, aby uzyskać dostęp do swojego kalendarza i danych.</p>
+            <p className="text-sm text-gray-500">
+              {isRegisterMode 
+                ? "Utwórz konto, aby rozpocząć zarządzanie swoimi danymi."
+                : "Zaloguj się, aby uzyskać dostęp do swojego kalendarza i danych."}
+            </p>
           </div>
           
+          {authSuccess && (
+            <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm mb-6 text-center border border-green-200">
+              {authSuccess}
+            </div>
+          )}
+
           {authError && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100">
               {authError}
             </div>
           )}
           
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleAuth} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Adres e-mail</label>
               <input 
@@ -141,9 +165,23 @@ export default function RentalCalendar() {
               type="submit" 
               className="w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-blue-700 active:bg-blue-800 transition shadow-sm"
             >
-              Zaloguj
+              {isRegisterMode ? "Zarejestruj się" : "Zaloguj"}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setAuthError('');
+                setAuthSuccess('');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 transition font-medium"
+            >
+              {isRegisterMode ? "Masz już konto? Zaloguj się" : "Nie masz konta? Zarejestruj się"}
+            </button>
+          </div>
         </div>
       </div>
     );
