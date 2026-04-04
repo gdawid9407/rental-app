@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CalendarEvent, BILL_CATEGORIES } from '../types/calendar';
 
+/*
+  INSTRUKCJE SQL DO URUCHOMIENIA W PANELU SUPABASE:
+  
+  -- 1. Dodanie kolumny user_id do tabeli calendar_entries:
+  ALTER TABLE calendar_entries ADD COLUMN user_id uuid REFERENCES auth.users(id);
+
+  -- 2. Włączenie Row Level Security (RLS) na tabeli:
+  ALTER TABLE calendar_entries ENABLE ROW LEVEL SECURITY;
+
+  -- 3. Stworzenie polityk dla użytkowników (tylko zalogowany użytkownik widzi i edytuje swoje dane):
+  CREATE POLICY "User can insert their own entries" ON calendar_entries FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+  CREATE POLICY "User can view their own entries" ON calendar_entries FOR SELECT TO authenticated USING (auth.uid() = user_id);
+  CREATE POLICY "User can update their own entries" ON calendar_entries FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+  CREATE POLICY "User can delete their own entries" ON calendar_entries FOR DELETE TO authenticated USING (auth.uid() = user_id);
+*/
+
 export type DeleteMode = 'single' | 'category-future' | 'category-past' | 'global-future' | 'global-past';
 
 export function useCalendarEvents() {
@@ -10,7 +26,21 @@ export function useCalendarEvents() {
 
   const fetchEvents = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('calendar_entries').select('*');
+    
+    // Pobranie aktualnie zalogowanego użytkownika
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      setEvents([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Filtrujemy rekordy po user_id
+    const { data, error } = await supabase
+      .from('calendar_entries')
+      .select('*')
+      .eq('user_id', user.id);
     
     if (error) {
       console.error("Błąd pobierania:", error.message);
@@ -65,19 +95,23 @@ export function useCalendarEvents() {
   }, []);
 
   const addEvent = async (payload: any, recurringMonths: number = 0) => {
-    let payloads = [payload];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Musisz być zalogowany");
 
-    if (recurringMonths > 0 && payload.start_date) {
+    const basePayload = { ...payload, user_id: user.id };
+    let payloads = [basePayload];
+
+    if (recurringMonths > 0 && basePayload.start_date) {
       const groupId = crypto.randomUUID();
-      payload.recurring_group_id = groupId;
+      basePayload.recurring_group_id = groupId;
       
-      const firstDate = new Date(payload.start_date);
+      const firstDate = new Date(basePayload.start_date);
       for (let i = 1; i <= recurringMonths; i++) {
         const nextDate = new Date(firstDate);
         nextDate.setMonth(nextDate.getMonth() + i);
 
         payloads.push({
-          ...payload,
+          ...basePayload,
           amount: null,
           status: 'planowany',
           start_date: nextDate.toISOString().split('T')[0],

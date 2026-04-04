@@ -1,5 +1,6 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { useCalendarEvents, type DeleteMode } from '../hooks/useCalendarEvents';
 import { Header } from '../components/Header';
 import { Calendar } from '../components/Calendar';
@@ -13,6 +14,39 @@ export default function RentalCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
+
+  // Zmienne stanu autoryzacji
+  const [user, setUser] = useState<any>(null);
+  const [isCheckingUser, setIsCheckingUser] = useState(true);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // Sprawdzanie sesji użytkownika
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setIsCheckingUser(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setAuthError("Błędny email lub hasło");
+  };
 
   const handleDateClick = (info: DateClickInfo) => {
     setSelectedEvent(null);
@@ -56,6 +90,64 @@ export default function RentalCalendar() {
       alert("Błąd: " + error.message);
     }
   };
+
+  if (isCheckingUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500 font-medium animate-pulse">Ładowanie...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-8 pt-10 pb-10">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Rental App</h1>
+            <p className="text-sm text-gray-500">Zaloguj się, aby uzyskać dostęp do swojego kalendarza i danych.</p>
+          </div>
+          
+          {authError && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100">
+              {authError}
+            </div>
+          )}
+          
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Adres e-mail</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+                placeholder="jan@kowalski.pl"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Hasło</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+                placeholder="••••••••"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+              />
+            </div>
+            <button 
+              type="submit" 
+              className="w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-blue-700 active:bg-blue-800 transition shadow-sm"
+            >
+              Zaloguj
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 md:p-12 text-gray-900">
