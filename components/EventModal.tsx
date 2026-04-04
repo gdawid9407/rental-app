@@ -139,23 +139,31 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
             <p className="text-sm text-gray-600 mb-4">Wybierz zakres usuwania dla wpisu "{selectedEvent?.rawTitle || title}":</p>
             
             <div className="space-y-2">
-              <button onClick={() => executeDelete('single')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                1. Usuń tylko ten jeden wpis
-              </button>
-              
-              {selectedEvent?.recurringGroupId && (
-                <button onClick={() => executeDelete('series')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                  2. Usuń tę serię (ten wpis i przyszłe powiązane)
+              {entryType === 'note' ? (
+                <button onClick={() => executeDelete('single')} className="w-full text-center px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
+                  🗑 Usuń Notatkę
                 </button>
-              )}
-              
-              <button onClick={() => executeDelete('type')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                3. Usuń wszystkie przyszłe zaplanowane z tej kategorii ("{selectedEvent?.rawTitle || title}")
-              </button>
+              ) : (
+                <>
+                  <button onClick={() => executeDelete('single')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
+                    1. Usuń tylko ten jeden wpis
+                  </button>
+                  
+                  {selectedEvent?.recurringGroupId && (
+                    <button onClick={() => executeDelete('series')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
+                      2. Usuń tę serię (ten wpis i przyszłe powiązane)
+                    </button>
+                  )}
+                  
+                  <button onClick={() => executeDelete('type')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
+                    3. Usuń wszystkie przyszłe zaplanowane z tej kategorii ("{selectedEvent?.rawTitle || title}")
+                  </button>
 
-              <button onClick={() => executeDelete('all-planned')} className="w-full text-left px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
-                ⚠ Usuń WSZYSTKIE zaplanowane na przyszłość wpisy (Reset)
-              </button>
+                  <button onClick={() => executeDelete('all-planned')} className="w-full text-left px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
+                    ⚠ Usuń WSZYSTKIE zaplanowane na przyszłość wpisy (Reset)
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -188,15 +196,25 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 {entryType === 'note' 
-                  ? 'Nazwa notatki' 
+                  ? 'Treść notatki' 
                   : (isCustomType ? 'Nazwa rachunku' : 'Opis / Mieszkanie (opcjonalnie)')}
               </label>
-              <input 
-                className={`w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 ${isCustomType && entryType === 'payment' && !title ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
-                placeholder={entryType === 'note' ? 'Wpisz nazwę notatki...' : (isCustomType ? 'np. Inny wydatek' : 'np. Mieszkanie nr 4')}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+              {entryType === 'note' ? (
+                <textarea 
+                  className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[120px]"
+                  placeholder="Wpisz tutaj długą notatkę..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  rows={5}
+                />
+              ) : (
+                <input 
+                  className={`w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 ${isCustomType && entryType === 'payment' && !title ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
+                  placeholder={isCustomType ? 'np. Inny wydatek' : 'np. Mieszkanie nr 4'}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              )}
             </div>
 
             {entryType === 'payment' && (
