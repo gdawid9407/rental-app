@@ -1,6 +1,7 @@
 import React from 'react';
 import { supabase } from '../lib/supabase';
-import { LogOut } from 'lucide-react'; // Zakładam, że mamy lucide-react
+import { LogOut, Home } from 'lucide-react';
+import Link from 'next/link';
 
 interface HeaderProps {
   isLoading: boolean;
@@ -19,13 +20,22 @@ export function Header({ isLoading }: HeaderProps) {
           {isLoading ? "Synchronizacja z bazą..." : "Zarządzanie finansami i notatkami"}
         </p>
       </div>
-      <button 
-        onClick={handleLogout}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-      >
-        <LogOut className="w-4 h-4" />
-        Wyloguj
-      </button>
+      <div className="flex items-center gap-3">
+        <Link 
+          href="/account"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+        >
+          <Home className="w-4 h-4 text-blue-600" />
+          Moje Konto
+        </Link>
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
+        >
+          <LogOut className="w-4 h-4" />
+          Wyloguj
+        </button>
+      </div>
     </div>
   );
 }

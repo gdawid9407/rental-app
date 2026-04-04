@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle } from 'lucide-react';
-import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType } from '../types/calendar';
+import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType, Property } from '../types/calendar';
 import type { DeleteMode } from '../hooks/useCalendarEvents';
 
 export interface ModalEventState {
@@ -13,6 +13,7 @@ export interface ModalEventState {
   isPlanned?: boolean;
   recurringGroupId?: string | null;
   billType?: BillType;
+  propertyId?: string | null;
 }
 
 interface EventModalProps {
@@ -20,16 +21,18 @@ interface EventModalProps {
   onClose: () => void;
   selectedDate: string;
   selectedEvent: ModalEventState | null;
+  properties: Property[];
   onSave: (id: string | null, payload: any, recurringMonths?: number) => Promise<void>;
   onDelete: (id: string, mode: DeleteMode, extraData?: { startDate?: string, billType?: string }) => Promise<void>;
 }
 
-export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSave, onDelete }: EventModalProps) {
+export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, properties, onSave, onDelete }: EventModalProps) {
   const [entryType, setEntryType] = useState<EntryType>('payment');
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<PaymentStatus>('do_zapłaty');
   const [billType, setBillType] = useState<BillType>('gaz');
+  const [propertyId, setPropertyId] = useState<string>('');
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
   const [isDeleting, setIsDeleting] = useState(false);
@@ -44,8 +47,9 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
         if (selectedEvent.type === 'payment') {
           setAmount(selectedEvent.amount?.toString() || "");
           setStatus(selectedEvent.status || 'do_zapłaty');
-          setBillType(selectedEvent.billType || 'inny');
+          setBillType(selectedEvent.billType || 'gaz');
         }
+        setPropertyId(selectedEvent.propertyId || '');
         setRecurringMonths(0);
       } else {
         setTitle("");
@@ -53,6 +57,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
         setEntryType('payment');
         setStatus('do_zapłaty');
         setBillType('gaz');
+        setPropertyId('');
         setRecurringMonths(0);
       }
     }
@@ -92,7 +97,8 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
       amount: finalAmount,
       status: status,
       is_planned: finalAmount === null ? true : false,
-      bill_type: entryType === 'payment' ? billType : null
+      bill_type: entryType === 'payment' ? billType : null,
+      property_id: propertyId === '' ? null : propertyId
     };
 
     await onSave(selectedEvent?.id || null, payload, recurringMonths);
@@ -116,13 +122,13 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
         <div className="flex border-b border-gray-100">
           <button 
             onClick={() => {setEntryType('payment'); setIsDeleting(false);}}
-            className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${entryType === 'payment' && !isDeleting ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+            className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'payment' && !isDeleting ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
           >
             <Receipt size={18} /> Rachunek
           </button>
           <button 
             onClick={() => {setEntryType('note'); setIsDeleting(false);}}
-            className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${entryType === 'note' && !isDeleting ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+            className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'note' && !isDeleting ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
           >
             <FileText size={18} /> Notatka
           </button>
@@ -197,19 +203,37 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
               )}
             </div>
 
-            {/* Nowy Box: Kategorie Rachunków */}
+            {/* Nowy Box: Kategorie Rachunków i Mieszkanie */}
             {entryType === 'payment' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Kategoria</label>
-                <select 
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900"
-                  value={billType}
-                  onChange={(e) => setBillType(e.target.value as BillType)}
-                >
-                  {BILL_CATEGORIES.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Mieszkanie (opcjonalnie)</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 transition-colors cursor-pointer"
+                    value={propertyId}
+                    onChange={(e) => setPropertyId(e.target.value)}
+                  >
+                    <option value="">-- Brak / Ogólne --</option>
+                    {properties.map(prop => (
+                      <option key={prop.id} value={prop.id}>
+                        {prop.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Kategoria</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 transition-colors cursor-pointer"
+                    value={billType}
+                    onChange={(e) => setBillType(e.target.value as BillType)}
+                  >
+                    {BILL_CATEGORIES.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
             
@@ -217,11 +241,11 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 {entryType === 'note' 
                   ? 'Treść notatki' 
-                  : (isCustomType ? 'Nazwa rachunku' : 'Opis / Mieszkanie (opcjonalnie)')}
+                  : (isCustomType ? 'Nazwa rachunku' : 'Dodatkowy Opis (opcjonalnie)')}
               </label>
               {entryType === 'note' ? (
                 <textarea 
-                  className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[120px]"
+                  className="w-full px-4 py-2 border border-gray-200 bg-gray-50 hover:bg-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[120px] transition-colors"
                   placeholder="Wpisz tutaj długą notatkę..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -229,8 +253,8 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
                 />
               ) : (
                 <input 
-                  className={`w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 ${isCustomType && entryType === 'payment' && !title ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
-                  placeholder={isCustomType ? 'np. Inny wydatek' : 'np. Mieszkanie nr 4'}
+                  className={`w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isCustomType && entryType === 'payment' && !title ? 'border-red-300 bg-red-50 hover:bg-red-100' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
+                  placeholder={isCustomType ? 'np. Inny wydatek' : 'np. za styczeń'}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -300,8 +324,8 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
             </button>
           ) : (
             <>
-              <button onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600">Anuluj</button>
-              <button onClick={handleSave} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl shadow-lg hover:bg-blue-700">
+              <button onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600 bg-white hover:bg-gray-100 rounded-xl transition-all shadow-sm border border-gray-200 hover:border-gray-300">Anuluj</button>
+              <button onClick={handleSave} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5">
                 {selectedEvent?.id ? 'Zapisz zmiany' : 'Utwórz'}
               </button>
             </>

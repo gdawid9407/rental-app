@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCalendarEvents, type DeleteMode } from '../hooks/useCalendarEvents';
+import { useProperties } from '../hooks/useProperties';
 import { Header } from '../components/Header';
 import { Calendar } from '../components/Calendar';
 import { EventModal, type ModalEventState } from '../components/EventModal';
@@ -9,8 +10,10 @@ import type { DateClickInfo, EventClickInfo } from '../types/calendar';export ty
 
 export default function RentalCalendar() {
   const { events, isLoading, addEvent, updateEvent, deleteEvent } = useCalendarEvents();
+  const { properties, isLoading: isPropertiesLoading } = useProperties();
   
   const [activeModule, setActiveModule] = useState<ModuleType>('calendar');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
@@ -193,43 +196,68 @@ export default function RentalCalendar() {
         <Header isLoading={isLoading} />
         
         {/* Przełącznik modułów ze wsparciem responsywności scrollX dla wielu tagów */}
-        <div className="px-8 pt-4 border-b border-gray-100 flex gap-6 bg-white overflow-x-auto whitespace-nowrap hide-scrollbar">
-          <button 
-            onClick={() => setActiveModule('calendar')}
-            className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'calendar' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Kalendarz
-          </button>
-          <button 
-            onClick={() => setActiveModule('analyzer')}
-            className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'analyzer' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Analizator Inwestycyjny
-          </button>
-          <button 
-            onClick={() => setActiveModule('deals')}
-            className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'deals' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Wyszukiwarka Okazji
-          </button>
-          <button 
-            onClick={() => setActiveModule('stats')}
-            className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'stats' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Statystyki
-          </button>
-          <button 
-            onClick={() => setActiveModule('database')}
-            className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'database' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Baza Danych
-          </button>
+        <div className="px-8 pt-4 border-b border-gray-100 flex justify-between items-center bg-white overflow-x-auto whitespace-nowrap hide-scrollbar">
+          <div className="flex gap-6">
+            <button 
+              onClick={() => setActiveModule('calendar')}
+              className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'calendar' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Kalendarz
+            </button>
+            <button 
+              onClick={() => setActiveModule('analyzer')}
+              className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'analyzer' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Analizator Inwestycyjny
+            </button>
+            <button 
+              onClick={() => setActiveModule('deals')}
+              className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'deals' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Wyszukiwarka Okazji
+            </button>
+            <button 
+              onClick={() => setActiveModule('stats')}
+              className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'stats' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Statystyki
+            </button>
+            <button 
+              onClick={() => setActiveModule('database')}
+              className={`pb-4 text-sm font-semibold transition-colors shrink-0 ${activeModule === 'database' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Baza Danych
+            </button>
+          </div>
         </div>
 
         {activeModule === 'calendar' ? (
           <>
+            {/* Filtr Nieruchomości */}
+            {properties.length > 0 && (
+              <div className="px-8 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3 overflow-x-auto whitespace-nowrap hide-scrollbar">
+                <span className="text-sm font-medium text-gray-500">Mieszkania:</span>
+                <button
+                  onClick={() => setSelectedPropertyId('')}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${selectedPropertyId === '' ? 'bg-gray-800 text-white shadow-md scale-105' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900 active:scale-95'}`}
+                >
+                  Wszystkie
+                </button>
+                {properties.map(prop => (
+                  <button
+                    key={prop.id}
+                    onClick={() => setSelectedPropertyId(prop.id)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2 ${selectedPropertyId === prop.id ? 'bg-gray-800 text-white shadow-md scale-105' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900 active:scale-95'}`}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: prop.color }}></span>
+                    {prop.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <Calendar 
-              events={events} 
+              events={events.filter(e => selectedPropertyId === '' ? true : e.extendedProps.propertyId === selectedPropertyId)} 
               onDateClick={handleDateClick} 
               onEventClick={handleEventClick} 
             />
@@ -238,6 +266,7 @@ export default function RentalCalendar() {
               onClose={() => setIsModalOpen(false)}
               selectedDate={selectedDate}
               selectedEvent={selectedEvent}
+              properties={properties}
               onSave={handleSave}
               onDelete={handleDelete}
             />

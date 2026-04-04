@@ -29,7 +29,15 @@ export interface CalendarEvent {
     isPlanned: boolean;
     recurringGroupId: string | null;
     billType?: BillType;
+    propertyId?: string | null;
   };
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  color: string;
+  user_id: string;
 }
 
 export interface DateClickInfo {
