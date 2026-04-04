@@ -115,7 +115,7 @@ export function WeekView({ weekStart, events, onDateClick, onEventClick }: WeekV
                 <div
                   key={`${slot.id}-${dayIndex}`}
                   onClick={() => handleCellClick(dateStr, slot.id)}
-                  className={`border-b border-r last:border-r-0 border-gray-100 dark:border-slate-700/50 min-h-[70px] md:min-h-[80px] p-1 md:p-1.5 cursor-pointer transition-colors duration-150
+                  className={`border-b border-r last:border-r-0 border-gray-100 dark:border-slate-700/50 h-[72px] md:h-[82px] overflow-hidden p-1 md:p-1.5 cursor-pointer transition-colors duration-150
                     ${today
                       ? 'bg-green-50/30 dark:bg-emerald-950/20 hover:bg-green-100/50 dark:hover:bg-emerald-900/30'
                       : 'hover:bg-blue-50/50 dark:hover:bg-slate-800/60'
@@ -125,7 +125,7 @@ export function WeekView({ weekStart, events, onDateClick, onEventClick }: WeekV
                     <div
                       key={ev.id}
                       onClick={(e) => handleEventClick(ev, e)}
-                      className="mb-1 px-1.5 py-1 rounded-md text-[10px] md:text-xs font-medium truncate cursor-pointer transition-all hover:scale-[1.02] hover:shadow-sm active:scale-95"
+                      className="mb-1 px-1.5 py-1 rounded-md text-[10px] md:text-xs font-medium truncate cursor-pointer transition-all hover:opacity-80 active:scale-95"
                       style={{
                         backgroundColor: ev.backgroundColor,
                         color: ev.textColor,

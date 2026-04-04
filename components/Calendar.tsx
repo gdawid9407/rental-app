@@ -19,6 +19,17 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
   const [viewTitle, setViewTitle] = useState('');
   const [viewType, setViewType] = useState('dayGridMonth');
 
+  // Naprawa layoutu FullCalendar po powrocie z widoku tygodniowego (był hidden, nie przeliczył szerokości)
+  useEffect(() => {
+    if (viewType !== 'dayGridWeek') {
+      // Krótkie opóźnienie - czekamy aż DOM usunie klasę 'hidden' zanim FullCalendar przelicza layout
+      const timer = setTimeout(() => {
+        calendarRef.current?.getApi().updateSize();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [viewType]);
+
   // Programowe przełączanie widoku
   const changeView = (view: string) => {
     calendarRef.current?.getApi().changeView(view);
