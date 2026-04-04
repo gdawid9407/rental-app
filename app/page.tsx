@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCalendarEvents, type DeleteMode } from '../hooks/useCalendarEvents';
 import { useProperties } from '../hooks/useProperties';
@@ -16,6 +16,7 @@ export default function RentalCalendar() {
   const [activeModule, setActiveModule] = useState<ModuleType>('calendar');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [selectedBillType, setSelectedBillType] = useState<BillType | ''>('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
@@ -235,50 +236,111 @@ export default function RentalCalendar() {
 
         {activeModule === 'calendar' ? (
           <>
-            {/* Filtry */}
-            <div className="bg-gray-50/50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800 transition-colors duration-200">
-              {/* Filtr Nieruchomości */}
-              {properties.length > 0 && (
-                <div className="px-8 py-3 flex items-center gap-3 overflow-x-auto whitespace-nowrap hide-scrollbar">
-                  <span className="text-sm font-medium text-gray-500 dark:text-slate-400 shrink-0">Mieszkania:</span>
+            {/* Pasek Filtrów – kompaktowy */}
+            <div className="px-8 py-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-3 transition-colors duration-200">
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 border ${
+                  isFilterOpen
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/40 shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Filtry
+                {(selectedPropertyId !== '' || selectedBillType !== '') && (
+                  <span className="ml-1 w-5 h-5 rounded-full bg-blue-600 dark:bg-blue-500 text-white text-xs font-bold flex items-center justify-center">
+                    {(selectedPropertyId !== '' ? 1 : 0) + (selectedBillType !== '' ? 1 : 0)}
+                  </span>
+                )}
+              </button>
+
+              {/* Aktywne filtry jako tagi (widoczne gdy panel zamknięty) */}
+              {!isFilterOpen && (selectedPropertyId !== '' || selectedBillType !== '') && (
+                <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap hide-scrollbar">
+                  {selectedPropertyId !== '' && (() => {
+                    const prop = properties.find(p => p.id === selectedPropertyId);
+                    return prop ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: prop.color }}></span>
+                        {prop.name}
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedPropertyId(''); }} className="ml-0.5 text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </span>
+                    ) : null;
+                  })()}
+                  {selectedBillType !== '' && (() => {
+                    const cat = BILL_CATEGORIES.find(c => c.id === selectedBillType);
+                    return cat ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700">
+                        {cat.icon} {cat.label}
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedBillType(''); }} className="ml-0.5 text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </span>
+                    ) : null;
+                  })()}
                   <button
-                    onClick={() => setSelectedPropertyId('')}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${selectedPropertyId === '' ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 dark:border-blue-500/50 shadow-md scale-105 border border-transparent dark:border' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-900 dark:hover:text-white active:scale-95'}`}
+                    onClick={() => { setSelectedPropertyId(''); setSelectedBillType(''); }}
+                    className="text-xs text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium"
                   >
-                    Wszystkie
+                    Wyczyść
                   </button>
-                  {properties.map(prop => (
-                    <button
-                      key={prop.id}
-                      onClick={() => setSelectedPropertyId(prop.id)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2 ${selectedPropertyId === prop.id ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 dark:border-blue-500/50 shadow-md scale-105 border border-transparent dark:border' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-900 dark:hover:text-white active:scale-95'}`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: prop.color }}></span>
-                      {prop.name}
-                    </button>
-                  ))}
                 </div>
               )}
+            </div>
 
-              {/* Filtr Typu Rachunku */}
-              <div className={`px-8 py-3 flex items-center gap-3 overflow-x-auto whitespace-nowrap hide-scrollbar ${properties.length > 0 ? 'border-t border-gray-100/50 dark:border-slate-800/50' : ''}`}>
-                <span className="text-sm font-medium text-gray-500 dark:text-slate-400 shrink-0">Typ rachunku:</span>
-                <button
-                  onClick={() => setSelectedBillType('')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${selectedBillType === '' ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 dark:border-blue-500/50 shadow-md scale-105 border border-transparent dark:border' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-900 dark:hover:text-white active:scale-95'}`}
-                >
-                  Wszystkie
-                </button>
-                {BILL_CATEGORIES.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedBillType(cat.id)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 ${selectedBillType === cat.id ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 dark:border-blue-500/50 shadow-md scale-105 border border-transparent dark:border' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-900 dark:hover:text-white active:scale-95'}`}
-                  >
-                    <span>{cat.icon}</span>
-                    {cat.label}
-                  </button>
-                ))}
+            {/* Rozwijany Panel Filtrów */}
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isFilterOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="bg-gray-50/80 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-800 px-8 py-4 space-y-4">
+                {/* Filtr Nieruchomości */}
+                {properties.length > 0 && (
+                  <div>
+                    <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 block">Mieszkanie</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setSelectedPropertyId('')}
+                        className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${selectedPropertyId === '' ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 shadow-sm border border-transparent dark:border-blue-500/40' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:scale-95'}`}
+                      >
+                        Wszystkie
+                      </button>
+                      {properties.map(prop => (
+                        <button
+                          key={prop.id}
+                          onClick={() => setSelectedPropertyId(prop.id)}
+                          className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${selectedPropertyId === prop.id ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 shadow-sm border border-transparent dark:border-blue-500/40' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:scale-95'}`}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: prop.color }}></span>
+                          {prop.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Filtr Typu Rachunku */}
+                <div>
+                  <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 block">Typ rachunku</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => setSelectedBillType('')}
+                      className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${selectedBillType === '' ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 shadow-sm border border-transparent dark:border-blue-500/40' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:scale-95'}`}
+                    >
+                      Wszystkie
+                    </button>
+                    {BILL_CATEGORIES.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedBillType(cat.id)}
+                        className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${selectedBillType === cat.id ? 'bg-gray-800 dark:bg-blue-600/20 text-white dark:text-blue-400 shadow-sm border border-transparent dark:border-blue-500/40' : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:scale-95'}`}
+                      >
+                        <span>{cat.icon}</span>
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
