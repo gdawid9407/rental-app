@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle, GripHorizontal } from 'lucide-react';
+import Draggable from 'react-draggable';
 import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType, Property } from '../types/calendar';
 import type { DeleteMode } from '../hooks/useCalendarEvents';
 
@@ -36,6 +37,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
   const [isDeleting, setIsDeleting] = useState(false);
+  const nodeRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -116,10 +118,16 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-        
-        <div className="flex border-b border-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-hidden pointer-events-auto">
+      <Draggable nodeRef={nodeRef} handle=".drag-handle" bounds="parent">
+        <div ref={nodeRef} className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          
+          {/* PASEK PRZESUWANIA (DRAG HANDLE) */}
+          <div className="drag-handle cursor-move bg-gray-100 flex items-center justify-center p-1.5 hover:bg-gray-200 transition-colors border-b border-gray-200 text-gray-400">
+            <GripHorizontal size={20} />
+          </div>
+
+          <div className="flex border-b border-gray-100 shrink-0">
           <button 
             onClick={() => {setEntryType('payment'); setIsDeleting(false);}}
             className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'payment' && !isDeleting ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
@@ -193,7 +201,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
             </div>
           </div>
         ) : (
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">{selectedEvent?.id ? 'Edytuj wpis' : 'Dodaj dla dnia'}: {selectedDate}</h3>
               {selectedEvent?.id && (
@@ -317,7 +325,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
           </div>
         )}
 
-        <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t flex gap-3 shrink-0">
           {isDeleting ? (
             <button onClick={() => setIsDeleting(false)} className="flex-1 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl bg-white hover:bg-gray-100">
               Wróć do edycji
@@ -332,6 +340,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, prope
           )}
         </div>
       </div>
+      </Draggable>
     </div>
   );
 }
