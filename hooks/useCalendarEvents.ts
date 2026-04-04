@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { CalendarEvent } from '../types/calendar';
+import { CalendarEvent, BILL_CATEGORIES } from '../types/calendar';
 
 export type DeleteMode = 'single' | 'series' | 'type' | 'all-planned';
 
@@ -15,24 +15,46 @@ export function useCalendarEvents() {
     if (error) {
       console.error("Błąd pobierania:", error.message);
     } else if (data) {
-      const mappedEvents = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        start: item.start_date,
-        allDay: true,
-        backgroundColor: item.entry_type === 'payment' ? 
-          (item.status === 'opłacone' ? '#dcfce7' : item.status === 'do_zapłaty' ? '#fee2e2' : '#fef3c7') : '#f3f4f6',
-        textColor: '#1f2937',
-        borderColor: item.is_planned || item.amount === null ? '#9ca3af' : '#e5e7eb',
-        classNames: item.is_planned || item.amount === null ? ['border-dashed', 'border-2', 'opacity-75'] : [],
-        extendedProps: { 
-          type: item.entry_type, 
-          status: item.status, 
-          amount: item.amount,
-          isPlanned: item.is_planned || false,
-          recurringGroupId: item.recurring_group_id || null
+      const mappedEvents = data.map(item => {
+        let displayTitle = item.title;
+
+        if (item.entry_type === 'payment') {
+          const cat = BILL_CATEGORIES.find(c => c.id === item.bill_type) || BILL_CATEGORIES.find(c => c.id === 'inny')!;
+          const hasCustomTitle = item.title && item.title !== cat.label;
+          
+          let baseText = hasCustomTitle ? `${cat.icon} ${cat.label} - ${item.title}` : `${cat.icon} ${cat.label}`;
+          
+          if (item.amount !== null) {
+            baseText += ` - ${item.amount} zł`;
+          } else if (item.is_planned || item.amount === null) {
+            baseText += ` - Do ustalenia`;
+          }
+          displayTitle = baseText;
+        } else {
+          displayTitle = `📝 ${item.title}`;
         }
-      }));
+
+        return {
+          id: item.id,
+          title: displayTitle,
+          start: item.start_date,
+          allDay: true,
+          backgroundColor: item.entry_type === 'payment' ? 
+            (item.status === 'opłacone' ? '#dcfce7' : item.status === 'do_zapłaty' ? '#fee2e2' : '#fef3c7') : '#f3f4f6',
+          textColor: '#1f2937',
+          borderColor: item.is_planned || item.amount === null ? '#9ca3af' : '#e5e7eb',
+          classNames: item.is_planned || item.amount === null ? ['border-dashed', 'border-2', 'opacity-75'] : [],
+          extendedProps: { 
+            type: item.entry_type, 
+            status: item.status, 
+            amount: item.amount,
+            isPlanned: item.is_planned || false,
+            recurringGroupId: item.recurring_group_id || null,
+            billType: item.bill_type || 'inny',
+            rawTitle: item.title // przechowujemy czysty tekst do edycji
+          }
+        };
+      });
       setEvents(mappedEvents);
     }
     setIsLoading(false);
@@ -42,7 +64,7 @@ export function useCalendarEvents() {
     fetchEvents();
   }, []);
 
-  const addEvent = async (payload: any, recurringMonths: number = 0, baseTitle: string = "") => {
+  const addEvent = async (payload: any, recurringMonths: number = 0) => {
     let payloads = [payload];
 
     if (recurringMonths > 0 && payload.start_date) {
@@ -53,18 +75,9 @@ export function useCalendarEvents() {
       for (let i = 1; i <= recurringMonths; i++) {
         const nextDate = new Date(firstDate);
         nextDate.setMonth(nextDate.getMonth() + i);
-        
-        // Zawsze usuwamy kwotę dla przyszłych wystąpień i wymuszamy "Do ustalenia" i "planowany"
-        let futureTitle = "";
-        if (payload.entry_type === 'payment') {
-          futureTitle = `💰 ${baseTitle} - Do ustalenia`;
-        } else {
-          futureTitle = `📝 ${baseTitle}`;
-        }
 
         payloads.push({
           ...payload,
-          title: futureTitle,
           amount: null,
           status: 'planowany',
           start_date: nextDate.toISOString().split('T')[0],
@@ -102,13 +115,12 @@ export function useCalendarEvents() {
         break;
       case 'type':
         if (extraData?.baseTitle && extraData?.startDate) {
-          const prefix = extraData.entryType === 'payment' ? '💰' : '📝';
-          const searchTitle = `${prefix} ${extraData.baseTitle}%`;
+          // Ponieważ zapisujemy do bazy jako title czysty tekst z modala, kasujemy dokładnie te o tej samej czystej nazwie!
           const { error } = await supabase
             .from('calendar_entries')
             .delete()
             .eq('is_planned', true)
-            .ilike('title', searchTitle)
+            .eq('title', extraData.baseTitle)
             .gte('start_date', extraData.startDate);
           if (error) throw new Error(error.message);
         }

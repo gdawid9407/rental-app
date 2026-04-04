@@ -31,16 +31,18 @@ export default function RentalCalendar() {
       status: event.extendedProps.status,
       isPlanned: event.extendedProps.isPlanned,
       recurringGroupId: event.extendedProps.recurringGroupId,
+      billType: event.extendedProps.billType,
+      rawTitle: event.extendedProps.rawTitle,
     });
     setIsModalOpen(true);
   };
 
-  const handleSave = async (id: string | null, payload: any, recurringMonths?: number, baseTitle?: string) => {
+  const handleSave = async (id: string | null, payload: any, recurringMonths?: number) => {
     try {
       if (id) {
         await updateEvent(id, payload);
       } else {
-        await addEvent(payload, recurringMonths, baseTitle);
+        await addEvent(payload, recurringMonths);
       }
     } catch (error: any) {
       alert("Błąd: " + error.message);

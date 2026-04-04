@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle } from 'lucide-react';
-import type { EntryType, PaymentStatus, CalendarEvent } from '../types/calendar';
+import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType } from '../types/calendar';
 import type { DeleteMode } from '../hooks/useCalendarEvents';
 
 export interface ModalEventState {
   id?: string | null;
-  title?: string;
+  title?: string; // Tytuł po sformatowaniu lub czysty
+  rawTitle?: string; // Prawdziwy, nie tknięty string
   type?: EntryType;
   amount?: string;
   status?: PaymentStatus;
   isPlanned?: boolean;
   recurringGroupId?: string | null;
+  billType?: BillType;
 }
 
 interface EventModalProps {
@@ -18,7 +20,7 @@ interface EventModalProps {
   onClose: () => void;
   selectedDate: string;
   selectedEvent: ModalEventState | null;
-  onSave: (id: string | null, payload: any, recurringMonths?: number, baseTitle?: string) => Promise<void>;
+  onSave: (id: string | null, payload: any, recurringMonths?: number) => Promise<void>;
   onDelete: (id: string, mode: DeleteMode, extraData?: { recurringGroupId?: string | null, startDate?: string, baseTitle?: string, entryType?: EntryType }) => Promise<void>;
 }
 
@@ -27,20 +29,22 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<PaymentStatus>('do_zapłaty');
+  const [billType, setBillType] = useState<BillType>('gaz');
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
-  // Status dla ekranu zaawansowanego usuwania
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setIsDeleting(false); // reset view
+      setIsDeleting(false);
       if (selectedEvent && selectedEvent.id) {
-        setTitle(selectedEvent.title?.split(' - ')[0].replace('💰 ', '').replace('📝 ', '') || "");
+        // Jeśli edycja to mamy wyseparowany rawTitle 
+        setTitle(selectedEvent.rawTitle || "");
         setEntryType(selectedEvent.type || 'payment');
         if (selectedEvent.type === 'payment') {
           setAmount(selectedEvent.amount?.toString() || "");
           setStatus(selectedEvent.status || 'do_zapłaty');
+          setBillType(selectedEvent.billType || 'inny');
         }
         setRecurringMonths(0);
       } else {
@@ -48,6 +52,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
         setAmount("");
         setEntryType('payment');
         setStatus('do_zapłaty');
+        setBillType('gaz');
         setRecurringMonths(0);
       }
     }
@@ -55,16 +60,28 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
 
   if (!isOpen) return null;
 
+  const isCustomType = billType === 'inny';
+
   const handleSave = async () => {
-    if (!title) return;
+    if (entryType === 'payment') {
+      if (isCustomType && !title.trim()) {
+        alert("Proszę wpisać nazwę rachunku.");
+        return;
+      }
+    } else {
+      if (!title.trim()) {
+        alert("Proszę wpisać nazwę notatki.");
+        return;
+      }
+    }
     
     const finalAmount = amount ? parseFloat(amount) : null;
     
-    let finalTitle = "";
-    if (entryType === 'payment') {
-      finalTitle = finalAmount ? `💰 ${title} - ${finalAmount} zł` : `💰 ${title} - Do ustalenia`;
-    } else {
-      finalTitle = `📝 ${title}`;
+    // Ustalanie ostatecznego tytułu, by spełniał warunki:
+    let finalTitle = title;
+    if (entryType === 'payment' && !title.trim()) {
+      const cat = BILL_CATEGORIES.find(c => c.id === billType);
+      finalTitle = cat ? cat.label : 'Rachunek';
     }
 
     const payload = {
@@ -73,10 +90,11 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
       entry_type: entryType,
       amount: finalAmount,
       status: status,
-      is_planned: finalAmount === null ? true : false
+      is_planned: finalAmount === null ? true : false,
+      bill_type: entryType === 'payment' ? billType : null
     };
 
-    await onSave(selectedEvent?.id || null, payload, recurringMonths, title);
+    await onSave(selectedEvent?.id || null, payload, recurringMonths);
     onClose();
   };
 
@@ -85,7 +103,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
       await onDelete(selectedEvent.id, mode, {
         recurringGroupId: selectedEvent.recurringGroupId,
         startDate: selectedDate,
-        baseTitle: title, // wycięta czysta nazwa np. Gaz
+        baseTitle: selectedEvent.rawTitle || title, // używamy naturalnego title a nie formatowanego 
         entryType: entryType
       });
       onClose();
@@ -96,7 +114,6 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
         
-        {/* Nawigacja okienka */}
         <div className="flex border-b border-gray-100">
           <button 
             onClick={() => {setEntryType('payment'); setIsDeleting(false);}}
@@ -112,7 +129,6 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
           </button>
         </div>
 
-        {/* Ciało okienka - jeśli JESTEŚMY w trybie usuwania */}
         {isDeleting ? (
           <div className="p-6 space-y-4">
             <div className="flex items-center gap-2 text-red-600 mb-4">
@@ -120,7 +136,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
               <h3 className="text-lg font-bold">Opcje usuwania</h3>
             </div>
             
-            <p className="text-sm text-gray-600 mb-4">Wybierz zakres usuwania dla wpisu "{title}":</p>
+            <p className="text-sm text-gray-600 mb-4">Wybierz zakres usuwania dla wpisu "{selectedEvent?.rawTitle || title}":</p>
             
             <div className="space-y-2">
               <button onClick={() => executeDelete('single')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
@@ -134,7 +150,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
               )}
               
               <button onClick={() => executeDelete('type')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                3. Usuń wszystkie przyszłe zaplanowane z tej kategorii ({title})
+                3. Usuń wszystkie przyszłe zaplanowane z tej kategorii ("{selectedEvent?.rawTitle || title}")
               </button>
 
               <button onClick={() => executeDelete('all-planned')} className="w-full text-left px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
@@ -143,7 +159,6 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
             </div>
           </div>
         ) : (
-          /* Ciało okienka - FORMULARZ (standardowe) */
           <div className="p-6 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">{selectedEvent?.id ? 'Edytuj wpis' : 'Dodaj dla dnia'}: {selectedDate}</h3>
@@ -153,32 +168,61 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
                 </button>
               )}
             </div>
+
+            {/* Nowy Box: Kategorie Rachunków */}
+            {entryType === 'payment' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Kategoria</label>
+                <select 
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900"
+                  value={billType}
+                  onChange={(e) => setBillType(e.target.value as BillType)}
+                >
+                  {BILL_CATEGORIES.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             
-            <input 
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Wpisz nazwę..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                {entryType === 'note' 
+                  ? 'Nazwa notatki' 
+                  : (isCustomType ? 'Nazwa rachunku' : 'Opis / Mieszkanie (opcjonalnie)')}
+              </label>
+              <input 
+                className={`w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 ${isCustomType && entryType === 'payment' && !title ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'}`}
+                placeholder={entryType === 'note' ? 'Wpisz nazwę notatki...' : (isCustomType ? 'np. Inny wydatek' : 'np. Mieszkanie nr 4')}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
 
             {entryType === 'payment' && (
               <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="number"
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl"
-                  placeholder="Kwota (zł)"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-                <select 
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-                  value={status}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as PaymentStatus)}
-                >
-                  <option value="planowany">🟡 Planowany</option>
-                  <option value="do_zapłaty">🔴 Do zapłaty</option>
-                  <option value="opłacone">🟢 Opłacone</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Kwota</label>
+                  <input 
+                    type="number"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Kwota (zł)"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900"
+                    value={status}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatus(e.target.value as PaymentStatus)}
+                  >
+                    <option value="planowany">🟡 Planowany</option>
+                    <option value="do_zapłaty">🔴 Do zapłaty</option>
+                    <option value="opłacone">🟢 Opłacone</option>
+                  </select>
+                </div>
               </div>
             )}
             
