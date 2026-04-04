@@ -21,7 +21,7 @@ interface EventModalProps {
   selectedDate: string;
   selectedEvent: ModalEventState | null;
   onSave: (id: string | null, payload: any, recurringMonths?: number) => Promise<void>;
-  onDelete: (id: string, mode: DeleteMode, extraData?: { recurringGroupId?: string | null, startDate?: string, baseTitle?: string, entryType?: EntryType }) => Promise<void>;
+  onDelete: (id: string, mode: DeleteMode, extraData?: { startDate?: string, billType?: string }) => Promise<void>;
 }
 
 export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSave, onDelete }: EventModalProps) {
@@ -61,6 +61,7 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
   if (!isOpen) return null;
 
   const isCustomType = billType === 'inny';
+  const categoryLabel = BILL_CATEGORIES.find(c => c.id === billType)?.label || 'Brak';
 
   const handleSave = async () => {
     if (entryType === 'payment') {
@@ -101,10 +102,8 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
   const executeDelete = async (mode: DeleteMode) => {
     if (selectedEvent?.id) {
       await onDelete(selectedEvent.id, mode, {
-        recurringGroupId: selectedEvent.recurringGroupId,
         startDate: selectedDate,
-        baseTitle: selectedEvent.rawTitle || title, // używamy naturalnego title a nie formatowanego 
-        entryType: entryType
+        billType: billType
       });
       onClose();
     }
@@ -138,30 +137,51 @@ export function EventModal({ isOpen, onClose, selectedDate, selectedEvent, onSav
             
             <p className="text-sm text-gray-600 mb-4">Wybierz zakres usuwania dla wpisu "{selectedEvent?.rawTitle || title}":</p>
             
-            <div className="space-y-2">
+            <div className="space-y-6">
               {entryType === 'note' ? (
                 <button onClick={() => executeDelete('single')} className="w-full text-center px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
                   🗑 Usuń Notatkę
                 </button>
               ) : (
                 <>
-                  <button onClick={() => executeDelete('single')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                    1. Usuń tylko ten jeden wpis
-                  </button>
-                  
-                  {selectedEvent?.recurringGroupId && (
-                    <button onClick={() => executeDelete('series')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                      2. Usuń tę serię (ten wpis i przyszłe powiązane)
+                  {/* POZIOM A: Pojedynczy */}
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">A. Bieżący</h4>
+                    <button onClick={() => executeDelete('single')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 hover:text-gray-900 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
+                      Usuń ten wpis
+                      <p className="text-xs text-gray-500 font-normal mt-1">Usuwa tylko ten jeden rachunek z danego dnia.</p>
                     </button>
-                  )}
+                  </div>
                   
-                  <button onClick={() => executeDelete('type')} className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors border border-gray-200 text-sm font-medium">
-                    3. Usuń wszystkie przyszłe zaplanowane z tej kategorii ("{selectedEvent?.rawTitle || title}")
-                  </button>
+                  {/* POZIOM B: Kategoria */}
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2">B. Kategoria ({categoryLabel})</h4>
+                    <div className="space-y-2">
+                      <button onClick={() => executeDelete('category-future')} className="w-full text-left px-4 py-3 bg-orange-50/50 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-colors border border-orange-100 text-sm font-medium">
+                        Anuluj przyszłe: {categoryLabel}
+                        <p className="text-xs text-gray-500 font-normal mt-1">Usuwa zaplanowane rachunki typu {categoryLabel}.</p>
+                      </button>
+                      <button onClick={() => executeDelete('category-past')} className="w-full text-left px-4 py-3 bg-orange-50/50 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-colors border border-orange-100 text-sm font-medium">
+                        Usuń historię: {categoryLabel}
+                        <p className="text-xs text-gray-500 font-normal mt-1">Usuwa stare rachunki typu {categoryLabel}.</p>
+                      </button>
+                    </div>
+                  </div>
 
-                  <button onClick={() => executeDelete('all-planned')} className="w-full text-left px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors border border-red-200 text-sm font-bold mt-4">
-                    ⚠ Usuń WSZYSTKIE zaplanowane na przyszłość wpisy (Reset)
-                  </button>
+                  {/* POZIOM C: Globalny */}
+                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100 mt-4">
+                    <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">C. Akcje Globalne</h4>
+                    <div className="space-y-2">
+                      <button onClick={() => executeDelete('global-future')} className="w-full text-left px-4 py-3 bg-white hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-200 text-sm font-bold shadow-sm">
+                        Zresetuj wszystkie plany
+                        <p className="text-xs text-red-400 font-normal mt-1">Usuwa wszystkie zaplanowane płatności ze wszystkich kategorii.</p>
+                      </button>
+                      <button onClick={() => executeDelete('global-past')} className="w-full text-left px-4 py-3 bg-white hover:bg-red-100 text-red-600 rounded-xl transition-colors border border-red-200 text-sm font-bold shadow-sm">
+                        Archiwizuj / Usuń historię
+                        <p className="text-xs text-red-400 font-normal mt-1">Usuwa wszystkie stare rekordy z kalendarza ze wszystkich kategorii.</p>
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
             </div>

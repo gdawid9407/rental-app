@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CalendarEvent, BILL_CATEGORIES } from '../types/calendar';
 
-export type DeleteMode = 'single' | 'series' | 'type' | 'all-planned';
+export type DeleteMode = 'single' | 'category-future' | 'category-past' | 'global-future' | 'global-past';
 
 export function useCalendarEvents() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -100,38 +100,44 @@ export function useCalendarEvents() {
   const deleteEvent = async (
     id: string,
     mode: DeleteMode = 'single',
-    extraData?: { recurringGroupId?: string | null, startDate?: string, baseTitle?: string, entryType?: string }
+    extraData?: { startDate?: string, billType?: string }
   ) => {
     switch (mode) {
-      case 'series':
-        if (extraData?.recurringGroupId && extraData?.startDate) {
+      case 'category-future':
+        if (extraData?.billType && extraData?.startDate) {
           const { error } = await supabase
             .from('calendar_entries')
             .delete()
-            .eq('recurring_group_id', extraData.recurringGroupId)
+            .eq('bill_type', extraData.billType)
             .gte('start_date', extraData.startDate);
           if (error) throw new Error(error.message);
         }
         break;
-      case 'type':
-        if (extraData?.baseTitle && extraData?.startDate) {
-          // Ponieważ zapisujemy do bazy jako title czysty tekst z modala, kasujemy dokładnie te o tej samej czystej nazwie!
+      case 'category-past':
+        if (extraData?.billType && extraData?.startDate) {
           const { error } = await supabase
             .from('calendar_entries')
             .delete()
-            .eq('is_planned', true)
-            .eq('title', extraData.baseTitle)
-            .gte('start_date', extraData.startDate);
+            .eq('bill_type', extraData.billType)
+            .lt('start_date', extraData.startDate);
           if (error) throw new Error(error.message);
         }
         break;
-      case 'all-planned':
+      case 'global-future':
         if (extraData?.startDate) {
           const { error } = await supabase
             .from('calendar_entries')
             .delete()
-            .eq('is_planned', true)
             .gte('start_date', extraData.startDate);
+          if (error) throw new Error(error.message);
+        }
+        break;
+      case 'global-past':
+        if (extraData?.startDate) {
+          const { error } = await supabase
+            .from('calendar_entries')
+            .delete()
+            .lt('start_date', extraData.startDate);
           if (error) throw new Error(error.message);
         }
         break;
