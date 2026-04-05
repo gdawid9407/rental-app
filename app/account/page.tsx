@@ -629,12 +629,17 @@ export default function AccountPage() {
                           <>
                             {/* ── Card top row ── */}
                             <div className="px-5 pt-5 pb-4 flex justify-between items-center">
-                              <div className="flex items-center gap-3">
+                              <div 
+                                onClick={() => toggleExpanded(p.id)}
+                                className="flex items-center gap-3 cursor-pointer group/name"
+                              >
                                 <span
-                                  className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0"
+                                  className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0 transition-transform group-hover/name:scale-110"
                                   style={{ backgroundColor: p.color }}
                                 />
-                                <span className="font-bold text-lg text-gray-800 dark:text-slate-100">{p.name}</span>
+                                <span className="font-bold text-lg text-gray-800 dark:text-slate-100 group-hover/name:text-blue-600 dark:group-hover/name:text-blue-400 transition-colors underline-offset-4 group-hover/name:underline decoration-blue-500/30">
+                                  {p.name}
+                                </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 {/* Toggle quick-add panel */}
