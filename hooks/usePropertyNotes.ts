@@ -75,5 +75,14 @@ export function usePropertyNotes(propertyId: string | null) {
     await fetchNotes();
   };
 
-  return { notes, isLoading, fetchNotes, addNote, deleteNote, togglePin, deleteAllNotes };
+  const updateNote = async (id: string, content: string) => {
+    const { error } = await supabase
+      .from('property_notes')
+      .update({ content })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    await fetchNotes();
+  };
+
+  return { notes, isLoading, fetchNotes, addNote, deleteNote, togglePin, deleteAllNotes, updateNote };
 }
