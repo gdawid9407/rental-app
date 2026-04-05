@@ -94,10 +94,19 @@ export default function AccountPage() {
   // ── Add-property panel toggle + newly-created tracking ────────────────────
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [newlyCreatedProperty, setNewlyCreatedProperty] = useState<Property | null>(null);
+  const [showPropSuccess, setShowPropSuccess] = useState(false);
 
   // ── Add-property form ────────────────────────────────────────────────────
   const [newPropName, setNewPropName]   = useState('');
   const [newPropColor, setNewPropColor] = useState(COLORS[0]);
+  const [newPropSelectedBills, setNewPropSelectedBills] = useState<string[]>([]);
+  const [newPropBillsDate, setNewPropBillsDate]         = useState(todayStr());
+
+  const toggleNewPropBill = (id: string) => {
+    setNewPropSelectedBills(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   // ── Edit state ───────────────────────────────────────────────────────────
   const [editingId, setEditingId]   = useState<string | null>(null);
@@ -132,9 +141,30 @@ export default function AccountPage() {
     if (!newPropName.trim()) return;
     try {
       const created = await addProperty({ name: newPropName, color: newPropColor });
+      
+      // If bills selected, add them one by one
+      if (newPropSelectedBills.length > 0) {
+        for (const billId of newPropSelectedBills) {
+          const cat = BILL_CATEGORIES.find(c => c.id === billId);
+          await addEvent({
+            title: cat?.label ?? 'Rachunek', // Added title to avoid DB NOT-NULL error
+            entry_type: 'payment',
+            bill_type: billId,
+            property_id: created.id,
+            start_date: newPropBillsDate,
+            status: 'do_zapłaty',
+            amount: null,
+            is_planned: true
+          });
+        }
+      }
+
       setNewlyCreatedProperty(created);
+      setShowPropSuccess(true);
       setNewPropName('');
       setNewPropColor(COLORS[0]);
+      setNewPropSelectedBills([]); // Reset selection
+      setTimeout(() => setShowPropSuccess(false), 2500);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Błąd');
     }
@@ -358,50 +388,111 @@ export default function AccountPage() {
 
                 {/* Property form — hidden once a property was just created */}
                 {!newlyCreatedProperty ? (
-                  <form onSubmit={handleCreate} className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-1 w-full">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Nazwa (np. Mieszkanie Zielone, Kawalerka 2)</label>
-                      <input
-                        value={newPropName}
-                        onChange={e => setNewPropName(e.target.value)}
-                        placeholder="Dowolna nazwa..."
-                        className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div className="w-full md:w-auto">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Etykieta</label>
-                      <div className="flex gap-2 p-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-                        {COLORS.map(c => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setNewPropColor(c)}
-                            className={`w-8 h-8 rounded-lg outline-none transition-all ${newPropColor === c ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'}`}
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
+                  <form onSubmit={handleCreate} className="space-y-6">
+                    {/* Basic details */}
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <div className="flex-1 w-full">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Nazwa (np. Mieszkanie Zielone, Kawalerka 2)</label>
+                        <input
+                          value={newPropName}
+                          onChange={e => setNewPropName(e.target.value)}
+                          placeholder="Dowolna nazwa..."
+                          className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div className="w-full md:w-auto">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Etykieta</label>
+                        <div className="flex gap-2 p-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                          {COLORS.map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setNewPropColor(c)}
+                              className={`w-8 h-8 rounded-lg outline-none transition-all ${newPropColor === c ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'}`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Integrated Quick Bills Section */}
+                    <div className="bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                          <Zap size={14} className="text-amber-400" />
+                          Rachunki na start (opcjonalnie)
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <CalendarDays size={14} className="text-slate-400" />
+                          <input
+                            type="date"
+                            value={newPropBillsDate}
+                            onChange={e => setNewPropBillsDate(e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          />
+                          {newPropBillsDate !== todayStr() && (
+                            <button
+                              type="button"
+                              onClick={() => setNewPropBillsDate(todayStr())}
+                              title="Resetuj do dzisiaj"
+                              className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                            >
+                              <RotateCcw size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {BILL_CATEGORIES.map(cat => {
+                          const isSelected = newPropSelectedBills.includes(cat.id);
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => toggleNewPropBill(cat.id)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-all duration-150 flex items-center gap-1.5 shadow-sm ${
+                                isSelected
+                                  ? 'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-400 scale-105'
+                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              <span className="text-base leading-none">{cat.icon}</span>
+                              {cat.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-gray-400 dark:text-slate-500 italic">
+                        * Zaznaczone rachunki zostaną automatycznie dodane do kalendarza na powyższą datę.
+                      </p>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={!newPropName.trim()}
-                      className="w-full md:w-auto mt-4 md:mt-0 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition shadow-sm whitespace-nowrap dark:bg-blue-500 dark:hover:bg-blue-600"
+                      className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition shadow-lg dark:bg-blue-500 dark:hover:bg-blue-600"
                     >
-                      Dodaj
+                      DODAJ MIESZKANIE {newPropSelectedBills.length > 0 && `(+ ${newPropSelectedBills.length} RACHUNKI)`}
                     </button>
                   </form>
                 ) : (
                   /* ── Quick-add for newly created property ── */
                   <div className="space-y-4">
-                    {/* Success banner */}
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl">
-                      <span
-                        className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm"
-                        style={{ backgroundColor: newlyCreatedProperty.color }}
-                      />
-                      <p className="text-sm font-semibold text-green-800 dark:text-green-400">
-                        Dodano: {newlyCreatedProperty.name} ✅
-                      </p>
+                    {/* Success banner — fades out after 2.5 seconds */}
+                    <div className={`transition-all duration-1000 ease-in-out overflow-hidden ${
+                      showPropSuccess ? 'max-h-20 opacity-100 mb-4 translate-y-0' : 'max-h-0 opacity-0 mb-0 -translate-y-2'
+                    }`}>
+                      <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm"
+                          style={{ backgroundColor: newlyCreatedProperty.color }}
+                        />
+                        <p className="text-sm font-semibold text-green-800 dark:text-green-400">
+                          Dodano: {newlyCreatedProperty.name} ✅
+                        </p>
+                      </div>
                     </div>
 
                     {/* Quick-add strip */}
