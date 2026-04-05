@@ -58,14 +58,15 @@ export function useProperties() {
     fetchProperties();
   }, []);
 
-  const addProperty = async (payload: Partial<Property>) => {
+  const addProperty = async (payload: Partial<Property>): Promise<Property> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Musisz być zalogowany");
 
     const newPayload = { ...payload, user_id: user.id };
-    const { error } = await supabase.from('properties').insert([newPayload]);
+    const { data, error } = await supabase.from('properties').insert([newPayload]).select().single();
     if (error) throw new Error(error.message);
     await fetchProperties();
+    return data as Property;
   };
 
   const updateProperty = async (id: string, payload: Partial<Property>) => {

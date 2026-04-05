@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Edit2, Trash2, AlertCircle, Zap, CalendarDays, RotateCcw, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, AlertCircle, Zap, CalendarDays, RotateCcw, ChevronDown, User, Mail, Lock, CheckCircle2 } from 'lucide-react';
 import { useProperties } from '../../hooks/useProperties';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { EventModal } from '../../components/EventModal';
+import { supabase } from '../../lib/supabase';
 import { Property, BillType, BILL_CATEGORIES } from '../../types/calendar';
 import type { DeleteMode } from '../../hooks/useCalendarEvents';
 
@@ -33,6 +34,66 @@ const todayStr = () => new Date().toISOString().split('T')[0];
 export default function AccountPage() {
   const { properties, isLoading, addProperty, updateProperty, deleteProperty } = useProperties();
   const { addEvent } = useCalendarEvents();
+
+  // ── Current user ────────────────────────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState<{ email?: string; user_metadata?: Record<string, string> } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // ── Edit-profile state ───────────────────────────────────────────────────
+  const [editNick, setEditNick]               = useState('');
+  const [editEmail, setEditEmail]             = useState('');
+  const [editPass, setEditPass]               = useState('');
+  const [editPassConfirm, setEditPassConfirm] = useState('');
+  const [profileMsg, setProfileMsg]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const showMsg = (type: 'ok' | 'err', text: string) => {
+    setProfileMsg({ type, text });
+    setTimeout(() => setProfileMsg(null), 4000);
+  };
+
+  const handleUpdateNick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editNick.trim()) return;
+    const { error } = await supabase.auth.updateUser({ data: { username: editNick.trim() } });
+    if (error) showMsg('err', error.message);
+    else {
+      showMsg('ok', 'Nick zosta\u0142 zaktualizowany!');
+      setCurrentUser(prev => prev ? { ...prev, user_metadata: { ...(prev.user_metadata ?? {}), username: editNick.trim() } } : prev);
+      setEditNick('');
+    }
+  };
+
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEmail.trim()) return;
+    const { error } = await supabase.auth.updateUser({ email: editEmail.trim() });
+    if (error) showMsg('err', error.message);
+    else { showMsg('ok', 'Wys\u0142ano link weryfikacyjny na nowy adres e-mail.'); setEditEmail(''); }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editPass.length < 6) { showMsg('err', 'Has\u0142o musi mie\u0107 co najmniej 6 znak\u00f3w.'); return; }
+    if (editPass !== editPassConfirm) { showMsg('err', 'Has\u0142a nie s\u0105 identyczne.'); return; }
+    const { error } = await supabase.auth.updateUser({ password: editPass });
+    if (error) showMsg('err', error.message);
+    else { showMsg('ok', 'Has\u0142o zosta\u0142o zmienione!'); setEditPass(''); setEditPassConfirm(''); }
+  };
+
+
+  // ── Edit-profile panel toggle ─────────────────────────────────────────────
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+
+  // ── Add-property panel toggle + newly-created tracking ────────────────────
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const [newlyCreatedProperty, setNewlyCreatedProperty] = useState<Property | null>(null);
 
   // ── Add-property form ────────────────────────────────────────────────────
   const [newPropName, setNewPropName]   = useState('');
@@ -70,7 +131,8 @@ export default function AccountPage() {
     e.preventDefault();
     if (!newPropName.trim()) return;
     try {
-      await addProperty({ name: newPropName, color: newPropColor });
+      const created = await addProperty({ name: newPropName, color: newPropColor });
+      setNewlyCreatedProperty(created);
       setNewPropName('');
       setNewPropColor(COLORS[0]);
     } catch (err: unknown) {
@@ -150,45 +212,253 @@ export default function AccountPage() {
           </div>
         </div>
 
+        {/* ── Welcome banner ── */}
+        {currentUser && (
+          <div className="mx-8 mt-6 flex items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900/50 rounded-2xl px-6 py-4">
+            <div className="w-11 h-11 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-md">
+              <span className="text-white font-bold text-lg">
+                {(currentUser.user_metadata?.username ?? currentUser.email ?? '?')[0].toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 dark:text-white">
+                Cześć, {currentUser.user_metadata?.username ?? 'użytkowniku'}! 👋
+              </p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                Zalogowany jako: <span className="font-medium text-gray-700 dark:text-slate-300">{currentUser.email}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="p-8 space-y-10">
 
-          {/* ── Dodaj Nieruchomość ── */}
-          <section className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 transition-colors duration-200">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <Plus size={20} className="text-blue-600 dark:text-blue-400" /> Dodaj Swoje Mieszkanie
-            </h2>
-            <form onSubmit={handleCreate} className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 w-full">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Nazwa (np. Mieszkanie Zielone, Kawalerka 2)</label>
-                <input
-                  value={newPropName}
-                  onChange={e => setNewPropName(e.target.value)}
-                  placeholder="Dowolna nazwa..."
-                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm text-gray-900 dark:text-white"
-                />
-              </div>
-              <div className="w-full md:w-auto">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Etykieta</label>
-                <div className="flex gap-2 p-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl shadow-sm transition-colors duration-200">
-                  {COLORS.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setNewPropColor(c)}
-                      className={`w-8 h-8 rounded-lg outline-none transition-all ${newPropColor === c ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'}`}
-                      style={{ backgroundColor: c }}
+          {/* ── Edycja konta (collapsible) ── */}
+          <section className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-colors duration-200">
+            {/* Clickable header */}
+            <button
+              type="button"
+              onClick={() => setIsEditProfileOpen(prev => !prev)}
+              className="w-full flex items-center justify-between px-6 py-5 hover:bg-gray-100 dark:hover:bg-slate-800/60 transition-colors duration-150"
+            >
+              <span className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <User size={20} className="text-blue-600 dark:text-blue-400" /> Edycja konta
+              </span>
+              <ChevronDown
+                size={18}
+                className={`text-gray-400 dark:text-slate-500 transition-transform duration-200 ${isEditProfileOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* Collapsible body */}
+            {isEditProfileOpen && (
+              <div className="px-6 pb-6 space-y-6 border-t border-gray-200 dark:border-slate-700 pt-5">
+                {/* Global feedback */}
+                {profileMsg && (
+                  <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium border ${
+                    profileMsg.type === 'ok'
+                      ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
+                      : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+                  }`}>
+                    <CheckCircle2 size={16} />
+                    {profileMsg.text}
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Nick */}
+                  <form onSubmit={handleUpdateNick} className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                      <User size={14} className="text-blue-500" /> Nick
+                    </label>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">
+                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.user_metadata?.username ?? '—'}</span>
+                    </p>
+                    <input
+                      type="text"
+                      value={editNick}
+                      onChange={e => setEditNick(e.target.value)}
+                      placeholder="Nowy nick..."
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
                     />
-                  ))}
+                    <button type="submit" disabled={!editNick.trim()} className="w-full py-2 text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 transition">
+                      Zapisz nick
+                    </button>
+                  </form>
+
+                  {/* E-mail */}
+                  <form onSubmit={handleUpdateEmail} className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                      <Mail size={14} className="text-blue-500" /> Adres e-mail
+                    </label>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">
+                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.email ?? '—'}</span>
+                    </p>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      placeholder="Nowy e-mail..."
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
+                    />
+                    <button type="submit" disabled={!editEmail.trim()} className="w-full py-2 text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 transition">
+                      Zapisz e-mail
+                    </button>
+                  </form>
+
+                  {/* Password */}
+                  <form onSubmit={handleUpdatePassword} className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                      <Lock size={14} className="text-blue-500" /> Hasło
+                    </label>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Ustaw nowe hasło (min. 6 znaków)</p>
+                    <input
+                      type="password"
+                      value={editPass}
+                      onChange={e => setEditPass(e.target.value)}
+                      placeholder="Nowe hasło..."
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
+                    />
+                    <input
+                      type="password"
+                      value={editPassConfirm}
+                      onChange={e => setEditPassConfirm(e.target.value)}
+                      placeholder="Powtórz hasło..."
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
+                    />
+                    <button type="submit" disabled={!editPass || !editPassConfirm} className="w-full py-2 text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 transition">
+                      Zmień hasło
+                    </button>
+                  </form>
                 </div>
               </div>
-              <button
-                type="submit"
-                disabled={!newPropName.trim()}
-                className="w-full md:w-auto mt-4 md:mt-0 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition shadow-sm whitespace-nowrap dark:bg-blue-500 dark:hover:bg-blue-600"
-              >
-                Dodaj
-              </button>
-            </form>
+            )}
+          </section>
+
+          {/* ── Dodaj Swoje Mieszkanie (collapsible) ── */}
+          <section className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-colors duration-200">
+            {/* Clickable header */}
+            <button
+              type="button"
+              onClick={() => { setIsAddPropertyOpen(prev => !prev); setNewlyCreatedProperty(null); }}
+              className="w-full flex items-center justify-between px-6 py-5 hover:bg-gray-100 dark:hover:bg-slate-800/60 transition-colors duration-150"
+            >
+              <span className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <Plus size={20} className="text-blue-600 dark:text-blue-400" /> Dodaj Swoje Mieszkanie
+              </span>
+              <ChevronDown
+                size={18}
+                className={`text-gray-400 dark:text-slate-500 transition-transform duration-200 ${isAddPropertyOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* Collapsible body */}
+            {isAddPropertyOpen && (
+              <div className="px-6 pb-6 border-t border-gray-200 dark:border-slate-700 pt-5 space-y-5">
+
+                {/* Property form — hidden once a property was just created */}
+                {!newlyCreatedProperty ? (
+                  <form onSubmit={handleCreate} className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Nazwa (np. Mieszkanie Zielone, Kawalerka 2)</label>
+                      <input
+                        value={newPropName}
+                        onChange={e => setNewPropName(e.target.value)}
+                        placeholder="Dowolna nazwa..."
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div className="w-full md:w-auto">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Etykieta</label>
+                      <div className="flex gap-2 p-1.5 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                        {COLORS.map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewPropColor(c)}
+                            className={`w-8 h-8 rounded-lg outline-none transition-all ${newPropColor === c ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'}`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!newPropName.trim()}
+                      className="w-full md:w-auto mt-4 md:mt-0 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition shadow-sm whitespace-nowrap dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                      Dodaj
+                    </button>
+                  </form>
+                ) : (
+                  /* ── Quick-add for newly created property ── */
+                  <div className="space-y-4">
+                    {/* Success banner */}
+                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm"
+                        style={{ backgroundColor: newlyCreatedProperty.color }}
+                      />
+                      <p className="text-sm font-semibold text-green-800 dark:text-green-400">
+                        Dodano: {newlyCreatedProperty.name} ✅
+                      </p>
+                    </div>
+
+                    {/* Quick-add strip */}
+                    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl px-5 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                          <Zap size={12} className="text-amber-400" />
+                          Szybkie dodawanie rachunku
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <CalendarDays size={13} className="text-slate-400" />
+                          <input
+                            type="date"
+                            value={getCardDate(newlyCreatedProperty.id)}
+                            onChange={e => setCardDate(newlyCreatedProperty.id, e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          />
+                          {!isCardDateToday(newlyCreatedProperty.id) && (
+                            <button
+                              onClick={() => resetCardDate(newlyCreatedProperty.id)}
+                              title="Resetuj do dzisiaj"
+                              className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                            >
+                              <RotateCcw size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {QUICK_BILL_TYPES.map(bt => {
+                          const cat = BILL_CATEGORIES.find(c => c.id === bt.id);
+                          return (
+                            <button
+                              key={bt.id}
+                              onClick={() => openQuickAdd(newlyCreatedProperty.id, bt.id)}
+                              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 transition-all duration-150 flex items-center gap-1.5"
+                            >
+                              <span className="text-base leading-none">{cat?.icon}</span>
+                              {bt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Add another */}
+                    <button
+                      type="button"
+                      onClick={() => setNewlyCreatedProperty(null)}
+                      className="w-full py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 transition"
+                    >
+                      + Dodaj kolejne mieszkanie
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* ── Lista Nieruchomości ── */}

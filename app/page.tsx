@@ -22,10 +22,11 @@ export default function CalendarPage() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('poludnie');
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ email?: string; user_metadata?: Record<string, string> } | null>(null);
   const [isCheckingUser, setIsCheckingUser] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nick, setNick] = useState('');
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -46,9 +47,14 @@ export default function CalendarPage() {
     setAuthError('');
     setAuthSuccess('');
     if (isRegisterMode) {
-      const { error } = await supabase.auth.signUp({ email, password });
+      if (!nick.trim()) { setAuthError('Proszę podać nick.'); return; }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username: nick.trim() } }
+      });
       if (error) setAuthError(error.message);
-      else { setAuthSuccess('Sukces! Zarejestrowano pomyślnie. Zaloguj się.'); setIsRegisterMode(false); }
+      else { setAuthSuccess('Sukces! Zarejestrowano pomyślnie. Zaloguj się.'); setIsRegisterMode(false); setNick(''); }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setAuthError('Błędny email lub hasło');
@@ -120,6 +126,13 @@ export default function CalendarPage() {
           {authSuccess && <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm mb-6 text-center border border-green-200">{authSuccess}</div>}
           {authError && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100">{authError}</div>}
           <form onSubmit={handleAuth} className="space-y-5">
+            {isRegisterMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Nick (wyświetlana nazwa)</label>
+                <input type="text" value={nick} onChange={e => setNick(e.target.value)} required={isRegisterMode} placeholder="np. Jan"
+                  className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Adres e-mail</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="jan@kowalski.pl"
@@ -135,7 +148,7 @@ export default function CalendarPage() {
             </button>
           </form>
           <div className="mt-6 text-center">
-            <button type="button" onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); setAuthSuccess(''); }}
+            <button type="button" onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); setAuthSuccess(''); setNick(''); }}
               className="text-sm text-blue-600 hover:text-blue-700 transition font-medium">
               {isRegisterMode ? 'Masz już konto? Zaloguj się' : 'Nie masz konta? Zarejestruj się'}
             </button>
@@ -155,6 +168,16 @@ export default function CalendarPage() {
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 md:p-12 text-gray-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-6xl bg-white dark:bg-slate-900 md:rounded-2xl md:shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden relative transition-colors duration-200">
         <Header isLoading={isLoading} />
+
+        {/* Greeting */}
+        {user?.user_metadata?.username && (
+          <div className="px-8 pt-5 pb-0">
+            <p className="text-base font-semibold text-gray-800 dark:text-slate-100">
+              Witaj, <span className="text-blue-600 dark:text-blue-400">{user.user_metadata.username}</span>! 👋
+            </p>
+          </div>
+        )}
+
         <NavTabs />
 
         {/* Pasek Filtrów */}
