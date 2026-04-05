@@ -8,11 +8,21 @@ interface PropertyKnowledgeBaseProps {
 }
 
 export function PropertyKnowledgeBase({ property }: PropertyKnowledgeBaseProps) {
-  const { notes, isLoading, addNote, deleteNote, togglePin } = usePropertyNotes(property.id);
+  const { notes, isLoading, addNote, deleteNote, togglePin, deleteAllNotes } = usePropertyNotes(property.id);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NoteCategory>('general');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isConfirmingDeleteAll, setIsConfirmingDeleteAll] = useState(false);
+
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAllNotes();
+      setIsConfirmingDeleteAll(false);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,17 +102,49 @@ export function PropertyKnowledgeBase({ property }: PropertyKnowledgeBaseProps) 
         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <Info size={16} className="text-blue-500" /> Baza Wiedzy o Nieruchomości
         </h3>
-        <button 
-          onClick={() => setIsAddingNote(!isAddingNote)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-            isAddingNote 
-              ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700' 
-              : 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-sm'
-          }`}
-        >
-          {isAddingNote ? <X size={14} /> : <Plus size={14} />}
-          {isAddingNote ? 'Anuluj' : 'Dodaj notatkę'}
-        </button>
+        <div className="flex items-center gap-2">
+          {notes.length > 0 && !isAddingNote && (
+            isConfirmingDeleteAll ? (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-200">
+                <button 
+                  onClick={() => setIsConfirmingDeleteAll(false)}
+                  className="px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                >
+                  Anuluj
+                </button>
+                <button 
+                  onClick={handleDeleteAll}
+                  className="px-3 py-1.5 text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all border border-red-200 dark:border-red-800"
+                >
+                  Usuń wszystkie
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsConfirmingDeleteAll(true)}
+                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-910/20 rounded-lg transition-colors flex items-center gap-1.5 group"
+                title="Wyczyść wszystkie notatki"
+              >
+                <Trash2 size={16} />
+                <span className="text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Wyczyść wszystko</span>
+              </button>
+            )
+          )}
+          <button 
+            onClick={() => {
+              setIsAddingNote(!isAddingNote);
+              setIsConfirmingDeleteAll(false);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+              isAddingNote 
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700' 
+                : 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-sm'
+            }`}
+          >
+            {isAddingNote ? <X size={14} /> : <Plus size={14} />}
+            {isAddingNote ? 'Anuluj' : 'Dodaj notatkę'}
+          </button>
+        </div>
       </div>
 
       {/* Formularz dodawania */}

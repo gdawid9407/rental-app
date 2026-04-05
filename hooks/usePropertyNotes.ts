@@ -68,5 +68,12 @@ export function usePropertyNotes(propertyId: string | null) {
     await fetchNotes();
   };
 
-  return { notes, isLoading, fetchNotes, addNote, deleteNote, togglePin };
+  const deleteAllNotes = async () => {
+    if (!propertyId) return;
+    const { error } = await supabase.from('property_notes').delete().eq('property_id', propertyId);
+    if (error) throw new Error(error.message);
+    await fetchNotes();
+  };
+
+  return { notes, isLoading, fetchNotes, addNote, deleteNote, togglePin, deleteAllNotes };
 }
