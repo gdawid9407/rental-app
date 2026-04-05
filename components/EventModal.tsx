@@ -22,7 +22,7 @@ interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string;
-  initialTimeSlot?: string;
+  initialTimeSlot?: string | null;
   selectedEvent: ModalEventState | null;
   properties: Property[];
   onSave: (id: string | null, payload: any, recurringMonths?: number) => Promise<void>;
@@ -60,7 +60,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
           setBillType(selectedEvent.billType || 'gaz');
         }
         setPropertyId(selectedEvent.propertyId || '');
-        setTimeSlot(selectedEvent.type === 'payment' ? null : (selectedEvent.timeSlot as TimeSlot) || 'poludnie');
+        setTimeSlot(selectedEvent.type === 'payment' ? null : (selectedEvent.timeSlot as TimeSlot) || null);
         setRecurringMonths(0);
       } else {
         setTitle("");
@@ -70,12 +70,16 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
         // Apply defaults from Account page shortcut, fall back to 'gaz' / ''
         setBillType(defaultBillType || 'gaz');
         setPropertyId(defaultPropertyId || '');
-        // Domyślnie "Cały dzień" (null) dla nowych wpisów (rachunków i notatek)
-        setTimeSlot(null);
+        
+        // Jeśli dodajemy rachunek (domyślnie), to zawsze "Cały dzień" (null).
+        // Jeśli dodajemy notatkę, chcemy przejąć slot kliknięty w kalendarzu.
+        // Ponieważ domyślnie typ to 'payment', ustawiamy null. 
+        // W handleSave i tak wymuszamy null dla rachunków.
+        setTimeSlot((initialTimeSlot as TimeSlot) || null);
         setRecurringMonths(0);
       }
     }
-  }, [isOpen, selectedEvent, defaultBillType, defaultPropertyId]);
+  }, [isOpen, selectedEvent, defaultBillType, defaultPropertyId, initialTimeSlot]);
 
   if (!isOpen) return null;
 

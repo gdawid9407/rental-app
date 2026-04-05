@@ -19,7 +19,7 @@ export default function CalendarPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('poludnie');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
 
   const [user, setUser] = useState<{ email?: string; user_metadata?: Record<string, string> } | null>(null);
@@ -64,7 +64,7 @@ export default function CalendarPage() {
   const handleDateClick = (info: DateClickInfo) => {
     setSelectedEvent(null);
     setSelectedDate(info.dateStr);
-    setSelectedTimeSlot(info.timeSlot || 'poludnie');
+    setSelectedTimeSlot(info.timeSlot ?? null);
     setIsModalOpen(true);
   };
 

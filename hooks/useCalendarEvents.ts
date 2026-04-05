@@ -83,7 +83,7 @@ export function useCalendarEvents() {
             billType: item.bill_type || 'inny',
             rawTitle: item.title,
             propertyId: item.property_id || null,
-            timeSlot: (item.time_slot as TimeSlot) || 'rano'
+            timeSlot: item.time_slot as TimeSlot | null
           }
         };
       });
