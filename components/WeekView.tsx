@@ -93,6 +93,48 @@ export function WeekView({ weekStart, events, onDateClick, onEventClick }: WeekV
           );
         })}
 
+        {/* === WIERSZ CAŁY DZIEŃ (ALL-DAY) === */}
+        <div className="border-b border-r border-gray-100 dark:border-slate-700/50 bg-gray-100/50 dark:bg-slate-800/80 flex flex-col items-center justify-center p-1 md:p-2 select-none">
+          <span className="text-base md:text-lg">📅</span>
+          <span className="text-[10px] md:text-xs font-bold text-gray-600 dark:text-slate-300 mt-0.5 leading-tight text-center">Cały dzień</span>
+        </div>
+        {days.map((day, dayIndex) => {
+          const dateStr = formatDateStr(day);
+          const today = isToday(day);
+          // Filtracja dla wydarzeń całodniowych (brak timeSlot)
+          const allDayEvents = (eventsByDate[dateStr] || []).filter(
+            ev => !ev.extendedProps.timeSlot
+          );
+
+          return (
+            <div
+              key={`allday-${dayIndex}`}
+              onClick={() => handleCellClick(dateStr, null as any)}
+              className={`border-b border-r last:border-r-0 border-gray-100 dark:border-slate-700/50 min-h-[48px] overflow-hidden p-1 md:p-1.5 cursor-pointer transition-colors duration-150
+                ${today
+                  ? 'bg-green-50/50 dark:bg-emerald-950/30 hover:bg-green-100/60 dark:hover:bg-emerald-900/40'
+                  : 'bg-gray-50/30 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-slate-800/60'
+                }`}
+            >
+              {allDayEvents.map(ev => (
+                <div
+                  key={ev.id}
+                  onClick={(e) => handleEventClick(ev, e)}
+                  className="mb-1 px-1.5 py-1 rounded-md text-[10px] md:text-xs font-semibold truncate cursor-pointer transition-all hover:opacity-80 active:scale-95 shadow-sm"
+                  style={{
+                    backgroundColor: ev.backgroundColor,
+                    color: ev.textColor,
+                    borderLeft: `3px solid ${ev.borderColor}`,
+                  }}
+                  title={ev.title}
+                >
+                  {ev.title}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+
         {/* === WIERSZE SLOTÓW === */}
         {TIME_SLOTS.map((slot) => (
           <React.Fragment key={slot.id}>
@@ -106,9 +148,9 @@ export function WeekView({ weekStart, events, onDateClick, onEventClick }: WeekV
             {days.map((day, dayIndex) => {
               const dateStr = formatDateStr(day);
               const today = isToday(day);
-              // Eventy wyłapujemy korzystając z rozszerzonej własności (albo wpadają do "rano" jako default z FullCalendar)
+              // Filtracja ścisła po slot.id - notatki (lub eventy z przypisanym czasem)
               const timeSlotEvents = (eventsByDate[dateStr] || []).filter(
-                ev => (ev.extendedProps.timeSlot || 'rano') === slot.id
+                ev => ev.extendedProps.timeSlot === slot.id
               );
 
               return (

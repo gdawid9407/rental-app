@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Edit2, Trash2, AlertCircle, Zap, CalendarDays, RotateCcw, ChevronDown, User, Mail, Lock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, AlertCircle, Zap, CalendarDays, RotateCcw, ChevronDown, User, Mail, Lock, CheckCircle2, Info, X } from 'lucide-react';
 import { useProperties } from '../../hooks/useProperties';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { EventModal } from '../../components/EventModal';
+import { PropertyKnowledgeBase } from '../../components/PropertyKnowledgeBase';
 import { supabase } from '../../lib/supabase';
 import { Property, BillType, BILL_CATEGORIES } from '../../types/calendar';
 import type { DeleteMode } from '../../hooks/useCalendarEvents';
@@ -639,19 +640,20 @@ export default function AccountPage() {
                                 {/* Toggle quick-add panel */}
                                 <button
                                   onClick={() => toggleExpanded(p.id)}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150 ${
+                                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border transition-all duration-150 ${
                                     isExpanded(p.id)
-                                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 text-amber-700 dark:text-amber-400'
-                                      : 'border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300'
+                                      ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+                                      : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 shadow-sm'
                                   }`}
-                                  title="Szybkie dodawanie rachunku"
                                 >
-                                  <Zap size={13} className={isExpanded(p.id) ? 'text-amber-500' : 'text-slate-400'} />
-                                  Dodaj rachunek
-                                  <ChevronDown
-                                    size={13}
-                                    className={`transition-transform duration-200 ${isExpanded(p.id) ? 'rotate-180' : ''}`}
-                                  />
+                                  {isExpanded(p.id) ? <X size={14} /> : <Info size={14} />}
+                                  {isExpanded(p.id) ? 'Zamknij' : 'Szczegóły'}
+                                  {!isExpanded(p.id) && (
+                                    <ChevronDown
+                                      size={14}
+                                      className="transition-transform duration-200"
+                                    />
+                                  )}
                                 </button>
                                 <button
                                   onClick={() => startEdit(p)}
@@ -670,48 +672,58 @@ export default function AccountPage() {
                               </div>
                             </div>
 
-                            {/* ── Quick-add section (collapsible) ── */}
+                            {/* ── Expanded Section (Accordion Style) ── */}
                             {isExpanded(p.id) && (
-                              <div className="px-5 pb-5 pt-3 border-t border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-top-1 duration-150">
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-                                    <Zap size={12} className="text-amber-400" />
-                                    Szybkie dodawanie rachunku
-                                  </p>
-                                  {/* Per-card date picker + reset */}
-                                  <div className="flex items-center gap-1">
-                                    <CalendarDays size={13} className="text-slate-400" />
-                                    <input
-                                      type="date"
-                                      value={getCardDate(p.id)}
-                                      onChange={e => setCardDate(p.id, e.target.value)}
-                                      className="bg-transparent border-none outline-none text-xs text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                    />
-                                    {!isCardDateToday(p.id) && (
-                                      <button
-                                        onClick={() => resetCardDate(p.id)}
-                                        title="Resetuj do dzisiaj"
-                                        className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                                      >
-                                        <RotateCcw size={12} />
-                                      </button>
-                                    )}
-                                  </div>
+                              <div className="px-5 pb-6 border-t border-gray-100 dark:border-slate-700/50 space-y-8 animate-in fade-in slide-in-from-top-1 duration-200">
+                                
+                                {/* 1. Knowledge Base Section */}
+                                <div className="pt-6">
+                                  <PropertyKnowledgeBase property={p} />
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {QUICK_BILL_TYPES.map(bt => {
-                                    const cat = BILL_CATEGORIES.find(c => c.id === bt.id);
-                                    return (
-                                      <button
-                                        key={bt.id}
-                                        onClick={() => openQuickAdd(p.id, bt.id)}
-                                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-all duration-150 flex items-center gap-1.5"
-                                      >
-                                        <span className="text-base leading-none">{cat?.icon}</span>
-                                        {bt.label}
-                                      </button>
-                                    );
-                                  })}
+
+                                <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+
+                                {/* 2. Quick Add Section (Existing) */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-4">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                      <Zap size={12} className="text-amber-400" />
+                                      Szybkie dodawanie rachunku
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <CalendarDays size={13} className="text-slate-400" />
+                                      <input
+                                        type="date"
+                                        value={getCardDate(p.id)}
+                                        onChange={e => setCardDate(p.id, e.target.value)}
+                                        className="bg-transparent border-none outline-none text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                      />
+                                      {!isCardDateToday(p.id) && (
+                                        <button
+                                          onClick={() => resetCardDate(p.id)}
+                                          title="Resetuj do dzisiaj"
+                                          className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                                        >
+                                          <RotateCcw size={12} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {QUICK_BILL_TYPES.map(bt => {
+                                      const cat = BILL_CATEGORIES.find(c => c.id === bt.id);
+                                      return (
+                                        <button
+                                          key={bt.id}
+                                          onClick={() => openQuickAdd(p.id, bt.id)}
+                                          className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/20 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-150 flex items-center gap-1.5 shadow-sm"
+                                        >
+                                          <span className="text-base leading-none">{cat?.icon}</span>
+                                          {bt.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                             )}

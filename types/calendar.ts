@@ -31,7 +31,7 @@ export interface CalendarEvent {
     recurringGroupId: string | null;
     billType?: BillType;
     propertyId?: string | null;
-    timeSlot?: TimeSlot;
+    timeSlot?: TimeSlot | null;
   };
 }
 
@@ -44,7 +44,7 @@ export interface Property {
 
 export interface DateClickInfo {
   dateStr: string;
-  timeSlot?: TimeSlot;
+  timeSlot?: TimeSlot | null;
 }
 
 export interface EventClickInfo {
@@ -55,3 +55,21 @@ export interface EventClickInfo {
     extendedProps: Record<string, any>;
   };
 }
+
+export type NoteCategory = 'technical' | 'tenant' | 'general';
+
+export interface PropertyNote {
+  id: string;
+  property_id: string;
+  user_id: string;
+  content: string;
+  category: NoteCategory;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export const NOTE_CATEGORIES = [
+  { id: 'technical', label: 'Techniczne', icon: '🔧' },
+  { id: 'tenant',    label: 'Najemcy',     icon: '👥' },
+  { id: 'general',   label: 'Ogólne',      icon: '📝' },
+] as const;

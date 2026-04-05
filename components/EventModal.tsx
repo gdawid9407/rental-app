@@ -15,7 +15,7 @@ export interface ModalEventState {
   recurringGroupId?: string | null;
   billType?: BillType;
   propertyId?: string | null;
-  timeSlot?: TimeSlot;
+  timeSlot?: TimeSlot | null;
 }
 
 interface EventModalProps {
@@ -39,7 +39,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
   const [status, setStatus] = useState<PaymentStatus>('do_zapłaty');
   const [billType, setBillType] = useState<BillType>('gaz');
   const [propertyId, setPropertyId] = useState<string>('');
-  const [timeSlot, setTimeSlot] = useState<TimeSlot>('poludnie');
+  const [timeSlot, setTimeSlot] = useState<TimeSlot | null>(null);
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
   const [isDeleting, setIsDeleting] = useState(false);
@@ -60,7 +60,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
           setBillType(selectedEvent.billType || 'gaz');
         }
         setPropertyId(selectedEvent.propertyId || '');
-        setTimeSlot((selectedEvent.timeSlot as TimeSlot) || 'poludnie');
+        setTimeSlot(selectedEvent.type === 'payment' ? null : (selectedEvent.timeSlot as TimeSlot) || 'poludnie');
         setRecurringMonths(0);
       } else {
         setTitle("");
@@ -70,7 +70,8 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
         // Apply defaults from Account page shortcut, fall back to 'gaz' / ''
         setBillType(defaultBillType || 'gaz');
         setPropertyId(defaultPropertyId || '');
-        setTimeSlot((initialTimeSlot as TimeSlot) || 'poludnie');
+        // Domyślnie "Cały dzień" (null) dla nowych wpisów (rachunków i notatek)
+        setTimeSlot(null);
         setRecurringMonths(0);
       }
     }
@@ -118,7 +119,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
       is_planned: finalAmount === null ? true : false,
       bill_type: entryType === 'payment' ? billType : null,
       property_id: propertyId === '' ? null : propertyId,
-      time_slot: timeSlot
+      time_slot: entryType === 'payment' ? null : timeSlot
     };
 
     await onSave(selectedEvent?.id || null, payload, recurringMonths);
@@ -142,7 +143,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
       is_planned: finalAmount === null ? true : false,
       bill_type: entryType === 'payment' ? billType : null,
       property_id: propertyId === '' ? null : propertyId,
-      time_slot: timeSlot
+      time_slot: entryType === 'payment' ? null : timeSlot
     };
     await onSave(selectedEvent?.id || null, payload, recurringMonths);
     setShowRecurringConfirm(false);
@@ -299,23 +300,29 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
               </div>
             )}
 
-            {/* Pora dnia — rozwijane */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Pora dnia <span className="font-normal text-gray-400 dark:text-slate-500">(opcjonalnie)</span></label>
-              <div className="relative">
-                <select
-                  value={timeSlot}
-                  onChange={(e) => setTimeSlot(e.target.value as TimeSlot)}
-                  className="w-full px-4 py-2 pr-10 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer text-sm"
-                >
-                  <option value="rano">🌅 Rano (6:00–12:00)</option>
-                  <option value="poludnie">☀️ Południe (12:00–18:00)</option>
-                  <option value="wieczor">🌆 Wieczór (18:00–00:00)</option>
-                  <option value="noc">🌙 Noc (0:00–6:00)</option>
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
+            {/* Pora dnia — rozwijane — TYLKO DLA NOTATEK */}
+            {entryType === 'note' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Pora dnia <span className="font-normal text-gray-400 dark:text-slate-500">(opcjonalnie)</span></label>
+                <div className="relative">
+                  <select
+                    value={timeSlot || 'all-day'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTimeSlot(val === 'all-day' ? null : val as TimeSlot);
+                    }}
+                    className="w-full px-4 py-2 pr-10 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-gray-900 dark:text-slate-100 transition-colors cursor-pointer text-sm"
+                  >
+                    <option value="all-day">📅 Cały dzień</option>
+                    <option value="rano">🌅 Rano (6:00–12:00)</option>
+                    <option value="poludnie">☀️ Południe (12:00–18:00)</option>
+                    <option value="wieczor">🌆 Wieczór (18:00–00:00)</option>
+                    <option value="noc">🌙 Noc (0:00–6:00)</option>
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">
