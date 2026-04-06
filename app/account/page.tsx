@@ -65,7 +65,7 @@ export default function AccountPage() {
     const { error } = await supabase.auth.updateUser({ data: { username: editNick.trim() } });
     if (error) showMsg('err', error.message);
     else {
-      showMsg('ok', 'Nick zosta\u0142 zaktualizowany!');
+      showMsg('ok', 'Nick został zaktualizowany!');
       setCurrentUser(prev => prev ? { ...prev, user_metadata: { ...(prev.user_metadata ?? {}), username: editNick.trim() } } : prev);
       setEditNick('');
     }
@@ -76,16 +76,16 @@ export default function AccountPage() {
     if (!editEmail.trim()) return;
     const { error } = await supabase.auth.updateUser({ email: editEmail.trim() });
     if (error) showMsg('err', error.message);
-    else { showMsg('ok', 'Wys\u0142ano link weryfikacyjny na nowy adres e-mail.'); setEditEmail(''); }
+    else { showMsg('ok', 'Wysłano link weryfikacyjny na nowy adres e-mail.'); setEditEmail(''); }
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editPass.length < 6) { showMsg('err', 'Has\u0142o musi mie\u0107 co najmniej 6 znak\u00f3w.'); return; }
-    if (editPass !== editPassConfirm) { showMsg('err', 'Has\u0142a nie s\u0105 identyczne.'); return; }
+    if (editPass.length < 6) { showMsg('err', 'Hasło musi mieć co najmniej 6 znaków.'); return; }
+    if (editPass !== editPassConfirm) { showMsg('err', 'Hasła nie są identyczne.'); return; }
     const { error } = await supabase.auth.updateUser({ password: editPass });
     if (error) showMsg('err', error.message);
-    else { showMsg('ok', 'Has\u0142o zosta\u0142o zmienione!'); setEditPass(''); setEditPassConfirm(''); }
+    else { showMsg('ok', 'Hasło zostało zmienione!'); setEditPass(''); setEditPassConfirm(''); }
   };
 
 
@@ -153,7 +153,7 @@ export default function AccountPage() {
             bill_type: billId,
             property_id: created.id,
             start_date: newPropBillsDate,
-            status: 'do_zapłaty',
+            status: 'do_zapa\u0142ty',
             amount: null,
             is_planned: true
           });
@@ -167,7 +167,7 @@ export default function AccountPage() {
       setNewPropSelectedBills([]); // Reset selection
       setTimeout(() => setShowPropSuccess(false), 2500);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Błąd');
+      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
     }
   };
 
@@ -177,7 +177,7 @@ export default function AccountPage() {
       await updateProperty(id, { name: editName, color: editColor });
       setEditingId(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Błąd');
+      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
     }
   };
 
@@ -193,7 +193,7 @@ export default function AccountPage() {
       await deleteProperty(id, keepEvents);
       setDeletingId(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Błąd');
+      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
     }
   };
 
@@ -223,7 +223,7 @@ export default function AccountPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-200">
-        <div className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">Ładowanie stanu konta...</div>
+        <div className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">\u0141adowanie stanu konta...</div>
       </div>
     );
   }
@@ -239,7 +239,7 @@ export default function AccountPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight dark:text-white">Moje Konto</h1>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Zarządzanie Nieruchomościami</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Zarz\u0105dzanie Nieruchomo\u015bciami</p>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ export default function AccountPage() {
             </div>
             <div>
               <p className="font-bold text-gray-900 dark:text-white">
-                Cześć, {currentUser.user_metadata?.username ?? 'użytkowniku'}! 👋
+                Cze\u015b\u0107, {currentUser.user_metadata?.username ?? 'u\u017cytkowniku'}! \ud83d\udc4b
               </p>
               <p className="text-sm text-gray-500 dark:text-slate-400">
                 Zalogowany jako: <span className="font-medium text-gray-700 dark:text-slate-300">{currentUser.email}</span>
@@ -303,7 +303,7 @@ export default function AccountPage() {
                       <User size={14} className="text-blue-500" /> Nick
                     </label>
                     <p className="text-xs text-gray-400 dark:text-slate-500">
-                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.user_metadata?.username ?? '—'}</span>
+                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.user_metadata?.username ?? '\u2014'}</span>
                     </p>
                     <input
                       type="text"
@@ -323,7 +323,7 @@ export default function AccountPage() {
                       <Mail size={14} className="text-blue-500" /> Adres e-mail
                     </label>
                     <p className="text-xs text-gray-400 dark:text-slate-500">
-                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.email ?? '—'}</span>
+                      Aktualny: <span className="font-medium text-gray-600 dark:text-slate-400">{currentUser?.email ?? '\u2014'}</span>
                     </p>
                     <input
                       type="email"
@@ -340,25 +340,25 @@ export default function AccountPage() {
                   {/* Password */}
                   <form onSubmit={handleUpdatePassword} className="space-y-2">
                     <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-slate-300">
-                      <Lock size={14} className="text-blue-500" /> Hasło
+                      <Lock size={14} className="text-blue-500" /> Has\u0142o
                     </label>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">Ustaw nowe hasło (min. 6 znaków)</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Ustaw nowe has\u0142o (min. 6 znak\u00f3w)</p>
                     <input
                       type="password"
                       value={editPass}
                       onChange={e => setEditPass(e.target.value)}
-                      placeholder="Nowe hasło..."
+                      placeholder="Nowe has\u0142o..."
                       className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
                     />
                     <input
                       type="password"
                       value={editPassConfirm}
                       onChange={e => setEditPassConfirm(e.target.value)}
-                      placeholder="Powtórz hasło..."
+                      placeholder="Powt\u00f3rz has\u0142o..."
                       className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
                     />
                     <button type="submit" disabled={!editPass || !editPassConfirm} className="w-full py-2 text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 transition">
-                      Zmień hasło
+                      Zmie\u0144 has\u0142o
                     </button>
                   </form>
                 </div>
@@ -466,7 +466,7 @@ export default function AccountPage() {
                         })}
                       </div>
                       <p className="text-[10px] text-gray-400 dark:text-slate-500 italic">
-                        * Zaznaczone rachunki zostaną automatycznie dodane do kalendarza na powyższą datę.
+                        * Zaznaczone rachunki zostan\u0105 automatycznie dodane do kalendarza na powy\u017csz\u0105 dat\u0119.
                       </p>
                     </div>
 
@@ -491,7 +491,7 @@ export default function AccountPage() {
                           style={{ backgroundColor: newlyCreatedProperty.color }}
                         />
                         <p className="text-sm font-semibold text-green-800 dark:text-green-400">
-                          Dodano: {newlyCreatedProperty.name} ✅
+                          Dodano: {newlyCreatedProperty.name} \u2705
                         </p>
                       </div>
                     </div>
@@ -556,12 +556,12 @@ export default function AccountPage() {
           {/* ── Lista Nieruchomości ── */}
           <section>
             <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
-              Zdefiniowane Nieruchomości ({properties.length})
+              Zdefiniowane Nieruchomo\u015bci ({properties.length})
             </h2>
 
             {properties.length === 0 ? (
               <div className="text-center p-8 bg-gray-50 dark:bg-slate-800/50 border border-dashed border-gray-300 dark:border-slate-700 rounded-2xl text-gray-500 dark:text-slate-400">
-                Nie dodałeś jeszcze żadnego mieszkania.
+                Nie doda\u0142e\u015b jeszcze \u017cadnego mieszkania.
               </div>
             ) : (
               <div className="grid gap-4">
@@ -603,74 +603,57 @@ export default function AccountPage() {
                         {deletingId === p.id ? (
                           <div className="p-5 bg-orange-50 dark:bg-orange-950/30 border-b border-orange-200 dark:border-orange-900">
                             <h3 className="font-bold flex items-center gap-2 text-orange-800 dark:text-orange-400 mb-4">
-                              <AlertCircle size={20} /> Co zrobić z powiązanymi rachunkami?
+                              <AlertCircle size={20} /> Co zrobi\u0107 z powi\u0105zanymi rachunkami?
                             </h3>
                             <div className="space-y-3">
                               <button
                                 onClick={() => executeDelete(p.id, true)}
                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 hover:bg-orange-100 dark:hover:bg-orange-900/50 rounded-lg border border-orange-100 dark:border-orange-800/50 transition shadow-sm"
                               >
-                                <span className="block font-semibold text-gray-800 dark:text-slate-100">Tylko usuń mieszkanie ✅</span>
-                                <span className="block text-xs text-gray-500 dark:text-slate-400 mt-1">Rachunki i opłaty zostaną w kalendarzu (otrzymają status Etykiety: --Brak--)</span>
+                                <span className="block font-semibold text-gray-800 dark:text-slate-100">Tylko usu\u0144 mieszkanie \u2705</span>
+                                <span className="block text-xs text-gray-500 dark:text-slate-400 mt-1">Rachunki i op\u0142aty zostan\u0105 w kalendarzu (otrzymaj\u0105 status Etykiety: --Brak--)</span>
                               </button>
                               <button
                                 onClick={() => executeDelete(p.id, false)}
                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/50 transition shadow-sm group"
                               >
-                                <span className="block font-semibold text-red-600 dark:text-red-400 group-hover:text-red-700">Usuń całkowicie z rachunkami 🗑</span>
-                                <span className="block text-xs text-red-400 dark:text-red-500/80 mt-1">Powiązane wpisy w kalendarzu zostaną skasowane. Działania nie da się cofnąć!</span>
+                                <span className="block font-semibold text-red-600 dark:text-red-400 group-hover:text-red-700">Usu\u0144 ca\u0142kowicie z rachunkami \ud83d\uddd1</span>
+                                <span className="block text-xs text-red-400 dark:text-red-500/80 mt-1">Powi\u0105zane wpisy w kalendarzu zostan\u0105 skasowane. Dzia\u0142ania nie da si\u0119 cofn\u0105\u0107!</span>
                               </button>
                             </div>
                             <button onClick={() => setDeletingId(null)} className="w-full mt-3 p-2 text-sm text-gray-600 dark:text-slate-300 font-medium hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-lg">
-                              Odrzuć i wróć
+                              Odrzu\u0107 i wr\u00f3\u0107
                             </button>
                           </div>
                         ) : (
                           <>
                             {/* ── Card top row ── */}
-                            <div className="px-5 pt-5 pb-4 flex justify-between items-center">
-                              <div 
-                                onClick={() => toggleExpanded(p.id)}
-                                className="flex items-center gap-3 cursor-pointer group/name"
-                              >
+                            <div 
+                              onClick={() => toggleExpanded(p.id)}
+                              className="px-5 pt-5 pb-4 flex justify-between items-center cursor-pointer transition-colors duration-200 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-t-2xl group/row"
+                            >
+                              <div className="flex items-center gap-3">
                                 <span
-                                  className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0 transition-transform group-hover/name:scale-110"
+                                  className="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0 transition-transform group-hover/row:scale-110"
                                   style={{ backgroundColor: p.color }}
                                 />
-                                <span className="font-bold text-lg text-gray-800 dark:text-slate-100 group-hover/name:text-blue-600 dark:group-hover/name:text-blue-400 transition-colors underline-offset-4 group-hover/name:underline decoration-blue-500/30">
+                                <span className="font-bold text-lg text-gray-800 dark:text-slate-100 transition-colors group-hover/row:text-blue-600 dark:group-hover/row:text-blue-400">
                                   {p.name}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
-                                {/* Toggle quick-add panel */}
+                                {/* Only show Edit/Delete, Zamknij removed as requested */}
                                 <button
-                                  onClick={() => toggleExpanded(p.id)}
-                                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border transition-all duration-150 ${
-                                    isExpanded(p.id)
-                                      ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
-                                      : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 shadow-sm'
-                                  }`}
-                                >
-                                  {isExpanded(p.id) ? <X size={14} /> : <Info size={14} />}
-                                  {isExpanded(p.id) ? 'Zamknij' : 'Szczegóły'}
-                                  {!isExpanded(p.id) && (
-                                    <ChevronDown
-                                      size={14}
-                                      className="transition-transform duration-200"
-                                    />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => startEdit(p)}
+                                  onClick={(e) => { e.stopPropagation(); startEdit(p); }}
                                   className="p-2 text-gray-400 dark:text-slate-400 hover:text-blue-600 dark:hover:text-amber-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition"
                                   title="Edytuj"
                                 >
                                   <Edit2 size={17} />
                                 </button>
                                 <button
-                                  onClick={() => setDeletingId(p.id)}
+                                  onClick={(e) => { e.stopPropagation(); setDeletingId(p.id); }}
                                   className="p-2 text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
-                                  title="Usuń"
+                                  title="Usu\u0144"
                                 >
                                   <Trash2 size={17} />
                                 </button>
@@ -678,60 +661,66 @@ export default function AccountPage() {
                             </div>
 
                             {/* ── Expanded Section (Accordion Style) ── */}
-                            {isExpanded(p.id) && (
-                              <div className="px-5 pb-6 border-t border-gray-100 dark:border-slate-700/50 space-y-8 animate-in fade-in slide-in-from-top-1 duration-200">
-                                
-                                {/* 1. Knowledge Base Section */}
-                                <div className="pt-6">
-                                  <PropertyKnowledgeBase property={p} />
-                                </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
-
-                                {/* 2. Quick Add Section (Existing) */}
-                                <div>
-                                  <div className="flex items-center justify-between mb-4">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-                                      <Zap size={12} className="text-amber-400" />
-                                      Szybkie dodawanie rachunku
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                      <CalendarDays size={13} className="text-slate-400" />
-                                      <input
-                                        type="date"
-                                        value={getCardDate(p.id)}
-                                        onChange={e => setCardDate(p.id, e.target.value)}
-                                        className="bg-transparent border-none outline-none text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                      />
-                                      {!isCardDateToday(p.id) && (
-                                        <button
-                                          onClick={() => resetCardDate(p.id)}
-                                          title="Resetuj do dzisiaj"
-                                          className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                                        >
-                                          <RotateCcw size={12} />
-                                        </button>
-                                      )}
-                                    </div>
+                            <div 
+                              className={`grid transition-all duration-500 ease-in-out ${
+                                isExpanded(p.id) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                              }`}
+                            >
+                              <div className="min-h-0 overflow-hidden">
+                                <div className="px-5 pb-6 border-t border-gray-100 dark:border-slate-700/50 space-y-8">
+                                  
+                                  {/* 1. Knowledge Base Section */}
+                                  <div className="pt-6">
+                                    <PropertyKnowledgeBase property={p} />
                                   </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {QUICK_BILL_TYPES.map(bt => {
-                                      const cat = BILL_CATEGORIES.find(c => c.id === bt.id);
-                                      return (
-                                        <button
-                                          key={bt.id}
-                                          onClick={() => openQuickAdd(p.id, bt.id)}
-                                          className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/20 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-150 flex items-center gap-1.5 shadow-sm"
-                                        >
-                                          <span className="text-base leading-none">{cat?.icon}</span>
-                                          {bt.label}
-                                        </button>
-                                      );
-                                    })}
+
+                                  <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+
+                                  {/* 2. Quick Add Section (Existing) */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                        <Zap size={12} className="text-amber-400" />
+                                        Szybkie dodawanie rachunku
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <CalendarDays size={13} className="text-slate-400" />
+                                        <input
+                                          type="date"
+                                          value={getCardDate(p.id)}
+                                          onChange={e => setCardDate(p.id, e.target.value)}
+                                          className="bg-transparent border-none outline-none text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                        />
+                                        {!isCardDateToday(p.id) && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); resetCardDate(p.id); }}
+                                            title="Resetuj do dzisiaj"
+                                            className="p-1 rounded-md text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                                          >
+                                            <RotateCcw size={12} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {QUICK_BILL_TYPES.map(bt => {
+                                        const cat = BILL_CATEGORIES.find(c => c.id === bt.id);
+                                        return (
+                                          <button
+                                            key={bt.id}
+                                            onClick={(e) => { e.stopPropagation(); openQuickAdd(p.id, bt.id); }}
+                                            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/20 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-150 flex items-center gap-1.5 shadow-sm"
+                                          >
+                                            <span className="text-base leading-none">{cat?.icon}</span>
+                                            {bt.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            )}
+                            </div>
                           </>
                         )}
                       </div>
