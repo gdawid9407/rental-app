@@ -153,7 +153,7 @@ export default function AccountPage() {
             bill_type: billId,
             property_id: created.id,
             start_date: newPropBillsDate,
-            status: 'do_zapa\u0142ty',
+            status: 'do_zapłaty',
             amount: null,
             is_planned: true
           });
@@ -167,7 +167,7 @@ export default function AccountPage() {
       setNewPropSelectedBills([]); // Reset selection
       setTimeout(() => setShowPropSuccess(false), 2500);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
+      alert(err instanceof Error ? err.message : 'Błąd');
     }
   };
 
@@ -177,7 +177,7 @@ export default function AccountPage() {
       await updateProperty(id, { name: editName, color: editColor });
       setEditingId(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
+      alert(err instanceof Error ? err.message : 'Błąd');
     }
   };
 
@@ -193,7 +193,7 @@ export default function AccountPage() {
       await deleteProperty(id, keepEvents);
       setDeletingId(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'B\u0142\u0105d');
+      alert(err instanceof Error ? err.message : 'Błąd');
     }
   };
 
@@ -223,7 +223,7 @@ export default function AccountPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center transition-colors duration-200">
-        <div className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">\u0141adowanie stanu konta...</div>
+        <div className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">Ładowanie stanu konta...</div>
       </div>
     );
   }
@@ -239,7 +239,7 @@ export default function AccountPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight dark:text-white">Moje Konto</h1>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Zarz\u0105dzanie Nieruchomo\u015bciami</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Zarządzanie Nieruchomościami</p>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ export default function AccountPage() {
             </div>
             <div>
               <p className="font-bold text-gray-900 dark:text-white">
-                Cze\u015b\u0107, {currentUser.user_metadata?.username ?? 'u\u017cytkowniku'}! \ud83d\udc4b
+                Cześć, {currentUser.user_metadata?.username ?? 'użytkowniku'}! 👋
               </p>
               <p className="text-sm text-gray-500 dark:text-slate-400">
                 Zalogowany jako: <span className="font-medium text-gray-700 dark:text-slate-300">{currentUser.email}</span>
@@ -340,25 +340,25 @@ export default function AccountPage() {
                   {/* Password */}
                   <form onSubmit={handleUpdatePassword} className="space-y-2">
                     <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 dark:text-slate-300">
-                      <Lock size={14} className="text-blue-500" /> Has\u0142o
+                      <Lock size={14} className="text-blue-500" /> Hasło
                     </label>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">Ustaw nowe has\u0142o (min. 6 znak\u00f3w)</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">Ustaw nowe hasło (min. 6 znaków)</p>
                     <input
                       type="password"
                       value={editPass}
                       onChange={e => setEditPass(e.target.value)}
-                      placeholder="Nowe has\u0142o..."
+                      placeholder="Nowe hasło..."
                       className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
                     />
                     <input
                       type="password"
                       value={editPassConfirm}
                       onChange={e => setEditPassConfirm(e.target.value)}
-                      placeholder="Powt\u00f3rz has\u0142o..."
+                      placeholder="Powtórz hasło..."
                       className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-gray-900 dark:text-white text-sm"
                     />
                     <button type="submit" disabled={!editPass || !editPassConfirm} className="w-full py-2 text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-40 transition">
-                      Zmie\u0144 has\u0142o
+                      Zmień hasło
                     </button>
                   </form>
                 </div>
@@ -466,7 +466,7 @@ export default function AccountPage() {
                         })}
                       </div>
                       <p className="text-[10px] text-gray-400 dark:text-slate-500 italic">
-                        * Zaznaczone rachunki zostan\u0105 automatycznie dodane do kalendarza na powy\u017csz\u0105 dat\u0119.
+                        * Zaznaczone rachunki zostaną automatycznie dodane do kalendarza na powyższą datę.
                       </p>
                     </div>
 
@@ -491,7 +491,7 @@ export default function AccountPage() {
                           style={{ backgroundColor: newlyCreatedProperty.color }}
                         />
                         <p className="text-sm font-semibold text-green-800 dark:text-green-400">
-                          Dodano: {newlyCreatedProperty.name} \u2705
+                          Dodano: {newlyCreatedProperty.name} ✅
                         </p>
                       </div>
                     </div>
@@ -556,12 +556,12 @@ export default function AccountPage() {
           {/* ── Lista Nieruchomości ── */}
           <section>
             <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">
-              Zdefiniowane Nieruchomo\u015bci ({properties.length})
+              Zdefiniowane Nieruchomości ({properties.length})
             </h2>
 
             {properties.length === 0 ? (
               <div className="text-center p-8 bg-gray-50 dark:bg-slate-800/50 border border-dashed border-gray-300 dark:border-slate-700 rounded-2xl text-gray-500 dark:text-slate-400">
-                Nie doda\u0142e\u015b jeszcze \u017cadnego mieszkania.
+                Nie dodałeś jeszcze żadnego mieszkania.
               </div>
             ) : (
               <div className="grid gap-4">
@@ -603,26 +603,26 @@ export default function AccountPage() {
                         {deletingId === p.id ? (
                           <div className="p-5 bg-orange-50 dark:bg-orange-950/30 border-b border-orange-200 dark:border-orange-900">
                             <h3 className="font-bold flex items-center gap-2 text-orange-800 dark:text-orange-400 mb-4">
-                              <AlertCircle size={20} /> Co zrobi\u0107 z powi\u0105zanymi rachunkami?
+                              <AlertCircle size={20} /> Co zrobić z powiązanymi rachunkami?
                             </h3>
                             <div className="space-y-3">
                               <button
                                 onClick={() => executeDelete(p.id, true)}
                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 hover:bg-orange-100 dark:hover:bg-orange-900/50 rounded-lg border border-orange-100 dark:border-orange-800/50 transition shadow-sm"
                               >
-                                <span className="block font-semibold text-gray-800 dark:text-slate-100">Tylko usu\u0144 mieszkanie \u2705</span>
-                                <span className="block text-xs text-gray-500 dark:text-slate-400 mt-1">Rachunki i op\u0142aty zostan\u0105 w kalendarzu (otrzymaj\u0105 status Etykiety: --Brak--)</span>
+                                <span className="block font-semibold text-gray-800 dark:text-slate-100">Tylko usuń mieszkanie ✅</span>
+                                <span className="block text-xs text-gray-500 dark:text-slate-400 mt-1">Rachunki i opłaty zostaną w kalendarzu (otrzymają status Etykiety: --Brak--)</span>
                               </button>
                               <button
                                 onClick={() => executeDelete(p.id, false)}
                                 className="w-full text-left p-3 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/50 transition shadow-sm group"
                               >
-                                <span className="block font-semibold text-red-600 dark:text-red-400 group-hover:text-red-700">Usu\u0144 ca\u0142kowicie z rachunkami \ud83d\uddd1</span>
-                                <span className="block text-xs text-red-400 dark:text-red-500/80 mt-1">Powi\u0105zane wpisy w kalendarzu zostan\u0105 skasowane. Dzia\u0142ania nie da si\u0119 cofn\u0105\u0107!</span>
+                                <span className="block font-semibold text-red-600 dark:text-red-400 group-hover:text-red-700">Usuń całkowicie z rachunkami 🗑</span>
+                                <span className="block text-xs text-red-400 dark:text-red-500/80 mt-1">Powiązane wpisy w kalendarzu zostaną skasowane. Działania nie da się cofnąć!</span>
                               </button>
                             </div>
                             <button onClick={() => setDeletingId(null)} className="w-full mt-3 p-2 text-sm text-gray-600 dark:text-slate-300 font-medium hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded-lg">
-                              Odrzu\u0107 i wr\u00f3\u0107
+                              Odrzuć i wróć
                             </button>
                           </div>
                         ) : (
@@ -653,7 +653,7 @@ export default function AccountPage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setDeletingId(p.id); }}
                                   className="p-2 text-gray-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
-                                  title="Usu\u0144"
+                                  title="Usuń"
                                 >
                                   <Trash2 size={17} />
                                 </button>
