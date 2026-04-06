@@ -36,27 +36,37 @@ export function useCalendarEvents() {
       return;
     }
 
-    // Filtrujemy rekordy po user_id
+    // Filtrujemy rekordy po user_id, dołączając nazwę nieruchomości
     const { data, error } = await supabase
       .from('calendar_entries')
-      .select('*')
+      .select('*, properties(name, color)')
       .eq('user_id', user.id);
     
     if (error) {
       console.error("Błąd pobierania:", error.message);
     } else if (data) {
-      const mappedEvents = data.map(item => {
+      const mappedEvents = data.map((item: any) => {
         let displayTitle = item.title;
+        const propertyName = item.properties?.name;
 
         if (item.entry_type === 'payment') {
           const cat = BILL_CATEGORIES.find(c => c.id === item.bill_type) || BILL_CATEGORIES.find(c => c.id === 'inny')!;
           const hasCustomTitle = item.title && item.title !== cat.label;
           
-          let baseText = hasCustomTitle ? `${cat.icon} ${cat.label} - ${item.title}` : `${cat.icon} ${cat.label}`;
+          // Ikona + Kategoria
+          let baseText = propertyName 
+            ? `${cat.icon} ${cat.label} (${propertyName})` 
+            : `${cat.icon} ${cat.label}`;
+
+          // Jeśli jest własny tytuł, dodajemy go (np. "za marzec")
+          if (hasCustomTitle) {
+            baseText += ` - ${item.title}`;
+          }
           
           if (item.amount !== null) {
             baseText += ` - ${item.amount} zł`;
-          } else if (item.is_planned || item.amount === null) {
+          } else if (!propertyName && (item.is_planned || item.amount === null)) {
+            // "Do ustalenia" tylko jeśli nie ma ani kwoty, ani nieruchomości
             baseText += ` - Do ustalenia`;
           }
           displayTitle = baseText;
@@ -72,8 +82,9 @@ export function useCalendarEvents() {
           backgroundColor: item.entry_type === 'payment' ? 
             (item.status === 'opłacone' ? '#dcfce7' : item.status === 'do_zapłaty' ? '#fee2e2' : '#fef3c7') : '#f3f4f6',
           textColor: '#1f2937',
-          borderColor: item.is_planned || item.amount === null ? '#9ca3af' : '#e5e7eb',
-          classNames: item.is_planned || item.amount === null ? ['border-dashed', 'border-2', 'opacity-75'] : [],
+          borderColor: item.properties?.color || (item.is_planned || item.amount === null ? '#9ca3af' : '#e5e7eb'),
+          classNames: (item.is_planned || item.amount === null ? ['border-dashed', 'opacity-75', 'border-2'] : [])
+            .concat(item.properties?.color ? ['has-property-color'] : []),
           extendedProps: { 
             type: item.entry_type, 
             status: item.status, 
@@ -83,7 +94,8 @@ export function useCalendarEvents() {
             billType: item.bill_type || 'inny',
             rawTitle: item.title,
             propertyId: item.property_id || null,
-            timeSlot: item.time_slot as TimeSlot | null
+            timeSlot: item.time_slot as TimeSlot | null,
+            propertyName: propertyName || null
           }
         };
       });

@@ -124,6 +124,13 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
           color: #a7f3d0 !important;
           background-color: #065f46 !important;
         }
+        .fc-event.has-property-color {
+          border-left-width: 4px !important;
+        }
+        .fc-daygrid-event {
+          border-radius: 4px !important;
+          padding: 1px 4px !important;
+        }
       `}</style>
 
       {/* Nawigacja + przełącznik widoku */}
