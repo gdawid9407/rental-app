@@ -272,7 +272,7 @@ export function PropertyKnowledgeBase({ property }: PropertyKnowledgeBaseProps) 
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className={`space-y-3 ${filteredNotes.length > 4 ? 'max-h-[440px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
           {pinnedNotes.length > 0 && (
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80 flex items-center gap-1.5 ml-1">
