@@ -82,6 +82,7 @@ export default function CalendarPage() {
       billType: event.extendedProps.billType,
       rawTitle: event.extendedProps.rawTitle,
       timeSlot: event.extendedProps.timeSlot,
+      propertyId: event.extendedProps.propertyId,
     });
     setIsModalOpen(true);
   };
