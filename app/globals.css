@@ -1,9 +1,6 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --fc-border-color: #e5e7eb;
