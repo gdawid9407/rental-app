@@ -1,8 +1,7 @@
-import type { Metadata } from 'next';
+"use client";
+import React from 'react';
 import { Header } from '../../components/Header';
 import { NavTabs } from '../../components/NavTabs';
-
-export const metadata: Metadata = { title: 'Statystyki' };
 
 export default function StatsPage() {
   return (
@@ -14,7 +13,7 @@ export default function StatsPage() {
           <div className="text-6xl mb-6">📈</div>
           <h2 className="text-2xl font-bold text-gray-700 dark:text-slate-200 mb-3">Statystyki</h2>
           <p className="text-gray-400 dark:text-slate-500 max-w-md">
-            Głębokie metryki finansowe, wykresy rentowności i raporty z historii płatności. Funkcjonalność w budowie.
+            Głębokie wglądy w Twoje finanse, rentowność najmu i trendy rynkowe. Funkcjonalność w budowie.
           </p>
         </div>
       </div>

@@ -1,10 +1,9 @@
-import type { Metadata } from 'next';
+"use client";
+import React from 'react';
 import { Header } from '../../components/Header';
 import { NavTabs } from '../../components/NavTabs';
 
-export const metadata: Metadata = { title: 'Wyszukiwarka Okazji' };
-
-export default function DealsPage() {
+export default function OpportunitySearchPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-slate-950 md:p-12 text-gray-900 dark:text-slate-100 transition-colors duration-200">
       <div className="mx-auto max-w-6xl bg-white dark:bg-slate-900 md:rounded-2xl md:shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden relative transition-colors duration-200">

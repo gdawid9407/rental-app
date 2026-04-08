@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const NAV_ITEMS = [
   { href: '/', label: 'Kalendarz' },
   { href: '/analyzer', label: 'Analizator Inwestycyjny' },
-  { href: '/deals', label: 'Wyszukiwarka Okazji' },
+  { href: '/opportunity-search', label: 'Wyszukiwarka Okazji' },
   { href: '/stats', label: 'Statystyki' },
   { href: '/database', label: 'Centrum danych Nieruchomości' },
 ];

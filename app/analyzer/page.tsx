@@ -1,8 +1,7 @@
-import type { Metadata } from 'next';
+"use client";
+import React from 'react';
 import { Header } from '../../components/Header';
 import { NavTabs } from '../../components/NavTabs';
-
-export const metadata: Metadata = { title: 'Analizator Inwestycyjny' };
 
 export default function AnalyzerPage() {
   return (
