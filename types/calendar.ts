@@ -12,7 +12,7 @@ export const BILL_CATEGORIES = [
   { id: 'inny', label: 'Inny', icon: '➕' },
 ] as const;
 
-export type BillType = typeof BILL_CATEGORIES[number]['id'];
+export type BillType = (typeof BILL_CATEGORIES)[number]['id'] | (string & {});
 
 export interface CalendarEvent {
   id: string;

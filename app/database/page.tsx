@@ -42,7 +42,7 @@ export default function DatabasePage() {
   const [editColor, setEditColor]   = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTabs, setActiveTabs] = useState<Record<string, TabType>>({});
 
   // ── EventModal state ─────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ export default function DatabasePage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const toggleExpanded = (id: string) => {
-    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedId(prev => (prev === id ? null : id));
     if (!activeTabs[id]) setActiveTabs(prev => ({ ...prev, [id]: 'general' }));
   };
 
@@ -244,7 +244,7 @@ export default function DatabasePage() {
                         <div className="flex items-center gap-2">
                           <button onClick={(e) => { e.stopPropagation(); setEditingId(p.id); setEditName(p.name); setEditColor(p.color); }} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition" title="Edytuj"><Edit2 size={18} /></button>
                           <button onClick={(e) => { e.stopPropagation(); setDeletingId(p.id); }} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition" title="Usuń"><Trash2 size={18} /></button>
-                          <div className={`p-2 transition-transform duration-300 ${expandedCards[p.id] ? 'rotate-180' : ''}`}>
+                          <div className={`p-2 transition-transform duration-300 ${expandedId === p.id ? 'rotate-180' : ''}`}>
                             <ChevronDown size={24} className="text-gray-300" />
                           </div>
                         </div>
@@ -252,7 +252,7 @@ export default function DatabasePage() {
 
                       {/* ── Expanded Content (Tabs) ── */}
                       <AnimatePresence>
-                        {expandedCards[p.id] && (
+                        {expandedId === p.id && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}

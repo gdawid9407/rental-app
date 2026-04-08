@@ -36,21 +36,24 @@ export function useCalendarEvents() {
       return;
     }
 
-    // Filtrujemy rekordy po user_id, dołączając nazwę nieruchomości
-    const { data, error } = await supabase
-      .from('calendar_entries')
-      .select('*, properties(name, color)')
-      .eq('user_id', user.id);
+    // Filtrujemy rekordy po user_id oraz pobieramy własne kategorie
+    const [entriesRes, categoriesRes] = await Promise.all([
+      supabase.from('calendar_entries').select('*, properties(name, color)').eq('user_id', user.id),
+      supabase.from('custom_bill_categories').select('*').eq('user_id', user.id)
+    ]);
     
-    if (error) {
-      console.error("Błąd pobierania:", error.message);
-    } else if (data) {
-      const mappedEvents = data.map((item: any) => {
+    if (entriesRes.error) {
+      console.error("Błąd pobierania:", entriesRes.error.message);
+    } else if (entriesRes.data) {
+      const customCats = categoriesRes.data || [];
+      const allCats = [...BILL_CATEGORIES, ...customCats.map(c => ({ id: c.id, label: c.label, icon: c.icon }))];
+
+      const mappedEvents = entriesRes.data.map((item: any) => {
         let displayTitle = item.title;
         const propertyName = item.properties?.name;
 
         if (item.entry_type === 'payment') {
-          const cat = BILL_CATEGORIES.find(c => c.id === item.bill_type) || BILL_CATEGORIES.find(c => c.id === 'inny')!;
+          const cat = allCats.find(c => c.id === item.bill_type) || allCats.find(c => c.id === 'inny')!;
           const hasCustomTitle = item.title && item.title !== cat.label;
           
           // Ikona + Kategoria

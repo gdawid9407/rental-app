@@ -4,6 +4,7 @@ import { Gauge, Plus, Calendar, ArrowUpRight, ArrowDownRight, Zap, Droplets, Fla
 import { Property, MeterReading, BILL_CATEGORIES, BillType } from '../../types/calendar';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
+import { useBillCategories } from '../../hooks/useBillCategories';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,7 @@ type ViewMode = 'bills' | 'meters';
 export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
   const { readings, isLoading: isDetailsLoading, addReading, refresh } = usePropertyDetails(property.id);
   const { events, isLoading: isEventsLoading } = useCalendarEvents();
+  const { allCategories, isLoading: isCategoriesLoading } = useBillCategories();
   const [viewMode, setViewMode] = useState<ViewMode>('bills');
   const [isAddingReading, setIsAddingReading] = useState(false);
   
@@ -158,13 +160,13 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
   };
 
   const getBillCategoryIcon = (billType: string) => {
-    const cat = BILL_CATEGORIES.find(c => c.id === billType);
+    const cat = allCategories.find(c => c.id === billType);
     return cat ? cat.icon : '📄';
   };
 
-  if (isDetailsLoading || isEventsLoading) return <div className="py-20 text-center animate-pulse text-gray-400">Ładowanie danych...</div>;
+  if (isDetailsLoading || isEventsLoading || isCategoriesLoading) return <div className="py-20 text-center animate-pulse text-gray-400">Ładowanie danych...</div>;
 
-  const activeBillCategory = billTypeFilter === 'all' ? 'Wszystkie Kategorie' : BILL_CATEGORIES.find(c => c.id === billTypeFilter)?.label;
+  const activeBillCategory = billTypeFilter === 'all' ? 'Wszystkie Kategorie' : allCategories.find(c => c.id === billTypeFilter)?.label;
   const activeStatus = statusFilter === 'all' ? 'Wszystkie Statusy' : statusFilter === 'opłacone' ? 'Opłacone' : 'Oczekujące';
   const activeTime = timeFilter === 'all' ? 'Kiedykolwiek' : timeFilter === 'past' ? 'Przeszłość' : timeFilter === 'current' ? 'Ten miesiąc' : 'Przyszłość';
   const activeMeter = meterTypeFilter === 'all' ? 'Wszystkie Liczniki' : getMeterLabel(meterTypeFilter);
@@ -394,7 +396,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                         >
                           Wszystkie kategorie
                         </button>
-                        {BILL_CATEGORIES.map(cat => (
+                        {allCategories.map(cat => (
                           <button
                             key={cat.id}
                             onClick={() => { setBillTypeFilter(cat.id); setOpenFilter(null); }}
@@ -517,9 +519,9 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                             </div>
                             <div>
                               <span className="font-bold block dark:text-white leading-tight">
-                                {BILL_CATEGORIES.find(c => c.id === bill.extendedProps.billType)?.label || 'Inny'}
+                                {allCategories.find(c => c.id === bill.extendedProps.billType)?.label || 'Inny'}
                               </span>
-                              {bill.extendedProps.rawTitle && bill.extendedProps.rawTitle !== BILL_CATEGORIES.find(c => c.id === bill.extendedProps.billType)?.label && (
+                              {bill.extendedProps.rawTitle && bill.extendedProps.rawTitle !== allCategories.find(c => c.id === bill.extendedProps.billType)?.label && (
                                 <span className="text-[10px] text-gray-400 dark:text-slate-500 italic block mt-0.5 font-black uppercase tracking-wider text-[8px]">{bill.extendedProps.rawTitle}</span>
                               )}
                             </div>

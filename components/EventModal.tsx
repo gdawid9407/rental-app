@@ -3,6 +3,7 @@ import { X, Receipt, FileText, Trash2, Repeat, AlertTriangle, GripHorizontal, Ch
 import Draggable from 'react-draggable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EntryType, PaymentStatus, CalendarEvent, BILL_CATEGORIES, BillType, Property, TimeSlot } from '../types/calendar';
+import { useBillCategories } from '../hooks/useBillCategories';
 import type { DeleteMode } from '../hooks/useCalendarEvents';
 
 export interface ModalEventState {
@@ -48,6 +49,8 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
   
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecurringConfirm, setShowRecurringConfirm] = useState(false);
+  const { allCategories, addCategory } = useBillCategories();
+  const [newCategoryName, setNewCategoryName] = useState("");
   const nodeRef = useRef(null);
 
   useEffect(() => {
@@ -84,6 +87,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
         setTimeSlot((initialTimeSlot as TimeSlot) || null);
         setRecurringMonths(0);
         setIsViewMode(false);
+        setNewCategoryName("");
       }
     }
   }, [isOpen, selectedEvent, defaultBillType, defaultPropertyId, initialTimeSlot]);
@@ -92,7 +96,8 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
   // even if the parent keeps rendering the component with isOpen=false
 
   const isCustomType = billType === 'inny';
-  const categoryLabel = BILL_CATEGORIES.find(c => c.id === billType)?.label || 'Brak';
+  const isCreatingNewCategory = billType === '__new_category__';
+  const categoryLabel = allCategories.find(c => c.id === billType)?.label || (isCreatingNewCategory ? 'Nowy typ' : 'Brak');
 
   const handleSave = async () => {
     if (entryType === 'payment') {
@@ -115,11 +120,25 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
     
     const finalAmount = amount ? parseFloat(amount) : null;
     
+    let finalBillType = billType;
+    if (isCreatingNewCategory) {
+      if (!newCategoryName.trim()) {
+        alert("Proszę podać nazwę nowej kategorii.");
+        return;
+      }
+      const savedCat = await addCategory(newCategoryName.trim());
+      if (!savedCat) {
+        alert("Wystąpił błąd podczas zapisywania nowej kategorii.");
+        return;
+      }
+      finalBillType = savedCat.id;
+    }
+
     // Ustalanie ostatecznego tytułu, by spełniał warunki:
     let finalTitle = title;
     if (entryType === 'payment' && !title.trim()) {
-      const cat = BILL_CATEGORIES.find(c => c.id === billType);
-      finalTitle = cat ? cat.label : 'Rachunek';
+      const cat = allCategories.find(c => c.id === finalBillType) || (isCreatingNewCategory ? { label: newCategoryName } : null);
+      finalTitle = cat ? (cat.label || 'Rachunek') : 'Rachunek';
     }
 
     const payload = {
@@ -129,23 +148,39 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
       amount: finalAmount,
       status: status,
       is_planned: finalAmount === null ? true : false,
-      bill_type: entryType === 'payment' ? billType : null,
+      bill_type: entryType === 'payment' ? finalBillType : null,
       property_id: propertyId === '' ? null : propertyId,
       time_slot: entryType === 'payment' ? null : timeSlot
     };
 
     await onSave(selectedEvent?.id || null, payload, recurringMonths);
     setShowRecurringConfirm(false);
+    setNewCategoryName("");
     onClose();
   };
 
   const handleConfirmRecurring = async () => {
+    let finalBillType = billType;
+    if (isCreatingNewCategory) {
+      if (!newCategoryName.trim()) {
+        alert("Proszę podać nazwę nowej kategorii.");
+        return;
+      }
+      const savedCat = await addCategory(newCategoryName.trim());
+      if (!savedCat) {
+        alert("Wystąpił błąd podczas zapisywania nowej kategorii.");
+        return;
+      }
+      finalBillType = savedCat.id;
+    }
+
     const finalAmount = amount ? parseFloat(amount) : null;
     let finalTitle = title;
     if (entryType === 'payment' && !title.trim()) {
-      const cat = BILL_CATEGORIES.find(c => c.id === billType);
-      finalTitle = cat ? cat.label : 'Rachunek';
+      const cat = allCategories.find(c => c.id === finalBillType) || (isCreatingNewCategory ? { label: newCategoryName } : null);
+      finalTitle = cat ? (cat.label || 'Rachunek') : 'Rachunek';
     }
+
     const payload = {
       title: finalTitle,
       start_date: internalDate,
@@ -153,7 +188,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
       amount: finalAmount,
       status: status,
       is_planned: finalAmount === null ? true : false,
-      bill_type: entryType === 'payment' ? billType : null,
+      bill_type: entryType === 'payment' ? finalBillType : null,
       property_id: propertyId === '' ? null : propertyId,
       time_slot: entryType === 'payment' ? null : timeSlot
     };
@@ -423,13 +458,26 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
                             value={billType}
                             onChange={(e) => setBillType(e.target.value as BillType)}
                           >
-                            {BILL_CATEGORIES.map(cat => (
+                            {allCategories.map(cat => (
                               <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
                             ))}
+                            <option value="__new_category__">➕ Dodaj własny typ...</option>
                           </select>
                           <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none" />
                         </div>
                       </div>
+
+                      {isCreatingNewCategory && (
+                        <div className="animate-in slide-in-from-top-1 duration-200">
+                          <label className="block text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1.5 ml-1">Nazwa nowego typu rachunku</label>
+                          <input 
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="np. Ogrzewanie"
+                            className="w-full px-4 py-2 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-slate-100 font-bold"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
