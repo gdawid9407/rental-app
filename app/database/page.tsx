@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Header } from '../../components/Header';
 import { NavTabs } from '../../components/NavTabs';
-import { Plus, Edit2, Trash2, AlertCircle, ChevronDown, Info, User, Zap, Phone, Database } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertCircle, ChevronDown, Info, User, Zap, Phone, Database, X, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProperties } from '../../hooks/useProperties';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
@@ -116,10 +116,14 @@ export default function DatabasePage() {
             </div>
             <button
               onClick={() => setIsAddPropertyOpen(!isAddPropertyOpen)}
-              className="bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
+              className={`font-bold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 transform hover:scale-[1.02] active:scale-[0.98] ${
+                isAddPropertyOpen 
+                  ? 'bg-slate-700 dark:bg-slate-800 text-white hover:bg-slate-800' 
+                  : 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
+              }`}
             >
-              <Plus size={20} />
-              DODAJ NIERUCHOMOŚĆ
+              {isAddPropertyOpen ? <ChevronUp size={20} /> : <Plus size={20} />}
+              {isAddPropertyOpen ? 'ZWIŃ PANEL' : 'DODAJ NIERUCHOMOŚĆ'}
             </button>
           </div>
 

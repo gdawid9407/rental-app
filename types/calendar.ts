@@ -86,12 +86,12 @@ export interface MeterReading {
 export interface LeaseInfo {
   id: string;
   property_id: string;
-  tenant_name: string;
-  tenant_contact: string;
-  lease_start: string;
-  lease_end: string;
-  insurance_expiry: string;
-  insurance_company?: string;
-  insurance_policy_number?: string;
+  tenant_name: string | null;
+  tenant_contact: string | null;
+  lease_start: string | null;
+  lease_end: string | null;
+  insurance_expiry: string | null;
+  insurance_company?: string | null;
+  insurance_policy_number?: string | null;
   rent_amount: number;
 }
