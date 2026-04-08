@@ -36,19 +36,20 @@ export function useCalendarEvents() {
       return;
     }
 
-    // Filtrujemy rekordy po user_id oraz pobieramy własne kategorie
-    const [entriesRes, categoriesRes] = await Promise.all([
+    // Filtrujemy rekordy po user_id oraz pobieramy własne kategorie i notatki
+    const [entriesRes, categoriesRes, notesRes] = await Promise.all([
       supabase.from('calendar_entries').select('*, properties(name, color)').eq('user_id', user.id),
-      supabase.from('custom_bill_categories').select('*').eq('user_id', user.id)
+      supabase.from('custom_bill_categories').select('*').eq('user_id', user.id),
+      supabase.from('property_notes').select('*, properties(name, color)').eq('user_id', user.id)
     ]);
     
     if (entriesRes.error) {
       console.error("Błąd pobierania:", entriesRes.error.message);
-    } else if (entriesRes.data) {
+    } else {
       const customCats = categoriesRes.data || [];
       const allCats = [...BILL_CATEGORIES, ...customCats.map(c => ({ id: c.id, label: c.label, icon: c.icon }))];
 
-      const mappedEvents = entriesRes.data.map((item: any) => {
+      const mappedPayments = (entriesRes.data || []).map((item: any) => {
         let displayTitle = item.title;
         const propertyName = item.properties?.name;
 
@@ -56,22 +57,14 @@ export function useCalendarEvents() {
           const cat = allCats.find(c => c.id === item.bill_type) || allCats.find(c => c.id === 'inny')!;
           const hasCustomTitle = item.title && item.title !== cat.label;
           
-          // Ikona + Kategoria
           let baseText = propertyName 
             ? `${cat.icon} ${cat.label} (${propertyName})` 
             : `${cat.icon} ${cat.label}`;
 
-          // Jeśli jest własny tytuł, dodajemy go (np. "za marzec")
-          if (hasCustomTitle) {
-            baseText += ` - ${item.title}`;
-          }
+          if (hasCustomTitle) baseText += ` - ${item.title}`;
+          if (item.amount !== null) baseText += ` - ${item.amount} zł`;
+          else if (!propertyName && (item.is_planned || item.amount === null)) baseText += ` - Do ustalenia`;
           
-          if (item.amount !== null) {
-            baseText += ` - ${item.amount} zł`;
-          } else if (!propertyName && (item.is_planned || item.amount === null)) {
-            // "Do ustalenia" tylko jeśli nie ma ani kwoty, ani nieruchomości
-            baseText += ` - Do ustalenia`;
-          }
           displayTitle = baseText;
         } else {
           displayTitle = `📝 ${item.title}`;
@@ -102,7 +95,30 @@ export function useCalendarEvents() {
           }
         };
       });
-      setEvents(mappedEvents);
+
+      const mappedNotes = (notesRes.data || []).map((item: any) => ({
+        id: item.id,
+        title: `📝 ${item.title}`,
+        start: item.start_date,
+        allDay: true,
+        backgroundColor: '#f3f4f6',
+        textColor: '#1f2937',
+        borderColor: item.properties?.color || '#e5e7eb',
+        extendedProps: {
+          type: 'note',
+          status: 'planowany', // placeholder dla notatki
+          amount: null,
+          isPlanned: false,
+          recurringGroupId: null,
+          rawTitle: item.title,
+          propertyId: item.property_id || null,
+          timeSlot: item.time_slot as TimeSlot | null,
+          propertyName: item.properties?.name || null,
+          isLegacy: true
+        }
+      }));
+
+      setEvents([...mappedPayments, ...mappedNotes] as CalendarEvent[]);
     }
     setIsLoading(false);
   };
@@ -143,8 +159,17 @@ export function useCalendarEvents() {
   };
 
   const updateEvent = async (id: string, payload: any) => {
+    // Try to update in calendar_entries first
     const { error } = await supabase.from('calendar_entries').update(payload).eq('id', id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      // If error or not found, try property_notes (if it matches the likely fields)
+      await supabase.from('property_notes').update({
+        title: payload.title,
+        start_date: payload.start_date,
+        property_id: payload.property_id,
+        time_slot: payload.time_slot
+      }).eq('id', id);
+    }
     await fetchEvents();
   };
 
@@ -156,46 +181,31 @@ export function useCalendarEvents() {
     switch (mode) {
       case 'category-future':
         if (extraData?.billType && extraData?.startDate) {
-          const { error } = await supabase
-            .from('calendar_entries')
-            .delete()
-            .eq('bill_type', extraData.billType)
-            .gte('start_date', extraData.startDate);
-          if (error) throw new Error(error.message);
+          await supabase.from('calendar_entries').delete().eq('bill_type', extraData.billType).gte('start_date', extraData.startDate);
         }
         break;
       case 'category-past':
         if (extraData?.billType && extraData?.startDate) {
-          const { error } = await supabase
-            .from('calendar_entries')
-            .delete()
-            .eq('bill_type', extraData.billType)
-            .lt('start_date', extraData.startDate);
-          if (error) throw new Error(error.message);
+          await supabase.from('calendar_entries').delete().eq('bill_type', extraData.billType).lt('start_date', extraData.startDate);
         }
         break;
       case 'global-future':
         if (extraData?.startDate) {
-          const { error } = await supabase
-            .from('calendar_entries')
-            .delete()
-            .gte('start_date', extraData.startDate);
-          if (error) throw new Error(error.message);
+          await supabase.from('calendar_entries').delete().gte('start_date', extraData.startDate);
         }
         break;
       case 'global-past':
         if (extraData?.startDate) {
-          const { error } = await supabase
-            .from('calendar_entries')
-            .delete()
-            .lt('start_date', extraData.startDate);
-          if (error) throw new Error(error.message);
+          await supabase.from('calendar_entries').delete().lt('start_date', extraData.startDate);
         }
         break;
       case 'single':
       default:
-        const { error: err } = await supabase.from('calendar_entries').delete().eq('id', id);
-        if (err) throw new Error(err.message);
+        // Attempt deletion from BOTH tables
+        await Promise.all([
+          supabase.from('calendar_entries').delete().eq('id', id),
+          supabase.from('property_notes').delete().eq('id', id)
+        ]);
         break;
     }
     

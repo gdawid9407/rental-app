@@ -231,20 +231,32 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
                 <GripHorizontal size={20} />
               </div>
 
-              <div className="flex border-b border-gray-100 dark:border-slate-800 shrink-0">
-                <button 
-                  onClick={() => {setEntryType('payment'); setIsDeleting(false);}}
-                  className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'payment' && !isDeleting ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-500' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-200'}`}
-                >
-                  <Receipt size={18} /> Rachunek
-                </button>
-                <button 
-                  onClick={() => {setEntryType('note'); setIsDeleting(false);}}
-                  className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'note' && !isDeleting ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-500' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-200'}`}
-                >
-                  <FileText size={18} /> Notatka
-                </button>
-              </div>
+              {isViewMode ? (
+                <div className="flex border-b border-gray-100 dark:border-slate-800 shrink-0">
+                  <div className="flex-1 py-4 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-500">
+                    {entryType === 'payment' ? (
+                      <><Receipt size={18} /> Szczegóły Rachunku</>
+                    ) : (
+                      <><FileText size={18} /> Szczegóły Notatki</>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex border-b border-gray-100 dark:border-slate-800 shrink-0">
+                  <button 
+                    onClick={() => setEntryType('payment')}
+                    className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'payment' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-500' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-200'}`}
+                  >
+                    <Receipt size={18} /> Rachunek
+                  </button>
+                  <button 
+                    onClick={() => setEntryType('note')}
+                    className={`flex-1 py-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${entryType === 'note' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-500' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-200'}`}
+                  >
+                    <FileText size={18} /> Notatka
+                  </button>
+                </div>
+              )}
 
               {isDeleting ? (
                 <div className="p-6 space-y-4">
@@ -309,7 +321,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                        {selectedEvent?.rawTitle || title}
+                        {entryType === 'payment' ? (selectedEvent?.rawTitle || title) : 'Szczegóły Notatki'}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
                         <FileText size={14} /> {entryType === 'payment' ? 'Rachunek' : 'Notatka'}
