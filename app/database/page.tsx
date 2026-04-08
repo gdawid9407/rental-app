@@ -93,7 +93,7 @@ export default function DatabasePage() {
       case 'general':  return <PropertyKnowledgeBase property={p} />;
       case 'lease':    return <TenantLeaseTab property={p} />;
       case 'meters':   return <UtilitiesMetersTab property={p} />;
-      case 'contacts': return <ContactsTab property={p} />;
+      case 'contacts': return <ContactsTab property={p} allProperties={properties} />;
       default: return null;
     }
   };
@@ -288,15 +288,17 @@ export default function DatabasePage() {
                                 {renderTabContent(p)}
                               </div>
 
-                              {/* Action Footer */}
-                              <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800 flex justify-end">
-                                <button
-                                  onClick={() => openQuickAdd(p.id)}
-                                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold px-6 py-2.5 rounded-xl text-sm hover:scale-[1.03] transition-transform flex items-center gap-2"
-                                >
-                                  <Plus size={18} /> DODAJ RACHUNEK W KALENDARZU
-                                </button>
-                              </div>
+                              {/* Action Footer (Only visible in Meters tab) */}
+                              {(activeTabs[p.id] === 'meters') && (
+                                <div className="mt-8 pt-8 border-t border-gray-100 dark:border-slate-800 flex justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                  <button
+                                    onClick={() => openQuickAdd(p.id)}
+                                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold px-6 py-2.5 rounded-xl text-sm hover:scale-[1.03] transition-transform flex items-center gap-2"
+                                  >
+                                    <Plus size={18} /> DODAJ RACHUNEK
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         )}

@@ -38,20 +38,27 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
   };
 
   const handleSave = async () => {
+    // Phone validation
+    const phoneRegex = /^[0-9+\s\-()]*$/;
+    if (tenantContact && !phoneRegex.test(tenantContact)) {
+      alert("Numer telefonu najemcy zawiera niepoprawne znaki.");
+      return;
+    }
+
     try {
       await saveLease({
-        tenant_name: tenantName || null,
-        tenant_contact: tenantContact || null,
+        tenant_name: tenantName.trim() || null,
+        tenant_contact: tenantContact.trim() || null,
         lease_start: leaseStart || null,
         lease_end: leaseEnd || null,
         insurance_expiry: insuranceExpiry || null,
-        insurance_company: insuranceCompany || null,
-        insurance_policy_number: insurancePolicyNumber || null,
+        insurance_company: insuranceCompany.trim() || null,
+        insurance_policy_number: insurancePolicyNumber.trim() || null,
         rent_amount: rentAmount ? parseFloat(rentAmount) : 0,
       });
       setIsEditing(false);
     } catch (err: any) {
-      alert(err.message);
+      alert("Błąd podczas aktualizacji umowy: " + err.message);
     }
   };
 
@@ -105,7 +112,13 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Numer Telefonu (opcjonalnie)</label>
-                  <input value={tenantContact} onChange={e => setTenantContact(e.target.value)} placeholder="+48 000 000 000" className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition" />
+                  <input 
+                    type="tel"
+                    value={tenantContact} 
+                    onChange={e => setTenantContact(e.target.value)} 
+                    placeholder="+48 000 000 000" 
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition" 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">Czynsz (opcjonalnie)</label>

@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
-import { Gauge, Plus, Calendar, ArrowUpRight, ArrowDownRight, Zap, Droplets, Flame, Trash2, Receipt, Clock, CheckCircle2, AlertCircle, ChevronDown, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Gauge, Plus, Calendar, ArrowUpRight, ArrowDownRight, Zap, Droplets, Flame, Trash2, Receipt, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronRight, Filter } from 'lucide-react';
 import { Property, MeterReading, BILL_CATEGORIES, BillType } from '../../types/calendar';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import { useCalendarEvents } from '../../hooks/useCalendarEvents';
@@ -21,8 +21,8 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('bills');
   const [isAddingReading, setIsAddingReading] = useState(false);
   
-  // Open states for dropdown filters
-  const [openFilter, setOpenFilter] = useState<'status' | 'time' | 'category' | null>(null);
+  // Open states for filters
+  const [openFilter, setOpenFilter] = useState<'status' | 'time' | 'category' | 'meter' | null>(null);
 
   // Filters - Bills
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
@@ -39,16 +39,30 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If no value, we could either alert or allow it depending on DB schema.
+    // Given the user wants to leave it empty, we treat as no-op or handle appropriately.
+    if (!value) {
+      alert("Proszę podać stan licznika lub dane nie zostaną zapisane.");
+      return;
+    }
+
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) {
+      alert("Stan licznika musi być liczbą.");
+      return;
+    }
+
     try {
       await addReading({
         type,
-        value: parseFloat(value),
+        value: numericValue,
         date
       });
       setIsAddingReading(false);
       setValue('');
     } catch (err: any) {
-      alert(err.message);
+      alert("Wystąpił błąd podczas dodawania odczytu: " + err.message);
     }
   };
 
@@ -153,15 +167,16 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
   const activeBillCategory = billTypeFilter === 'all' ? 'Wszystkie Kategorie' : BILL_CATEGORIES.find(c => c.id === billTypeFilter)?.label;
   const activeStatus = statusFilter === 'all' ? 'Wszystkie Statusy' : statusFilter === 'opłacone' ? 'Opłacone' : 'Oczekujące';
   const activeTime = timeFilter === 'all' ? 'Kiedykolwiek' : timeFilter === 'past' ? 'Przeszłość' : timeFilter === 'current' ? 'Ten miesiąc' : 'Przyszłość';
+  const activeMeter = meterTypeFilter === 'all' ? 'Wszystkie Liczniki' : getMeterLabel(meterTypeFilter);
 
   return (
-    <div className="space-y-8 pt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-8 pt-4 animate-in fade-in slide-in-from-bottom-2 duration-300 font-sans">
       
       {/* ── VIEW MULTIPLEXER ── */}
       <div className="flex justify-center mb-6">
         <div className="flex bg-gray-100 dark:bg-slate-800 p-1.5 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
           <button
-            onClick={() => setViewMode('bills')}
+            onClick={() => { setViewMode('bills'); setOpenFilter(null); }}
             className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 transition-all ${
               viewMode === 'bills' 
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-amber-400 shadow-md transform scale-[1.02]' 
@@ -171,7 +186,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
             <Receipt size={16} /> Historia Rachunków
           </button>
           <button
-            onClick={() => setViewMode('meters')}
+            onClick={() => { setViewMode('meters'); setOpenFilter(null); }}
             className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 transition-all ${
               viewMode === 'meters' 
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-amber-400 shadow-md transform scale-[1.02]' 
@@ -193,20 +208,44 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
               </h3>
               
               <div className="flex flex-row items-center gap-3">
-                <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
-                  {([ 'all', 'prad', 'gaz', 'woda', 'cieplo'] as const).map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setMeterTypeFilter(f)}
-                      className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${
-                        meterTypeFilter === f 
-                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-amber-400 shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                    >
-                      {f === 'all' ? 'Wszystkie' : f === 'prad' ? 'Prąd' : f === 'gaz' ? 'Gaz' : f === 'woda' ? 'Woda' : 'Ciepło'}
-                    </button>
-                  ))}
+                {/* Meter Expandable Filter (SIDEWAYS) */}
+                <div className="relative flex items-center bg-gray-100 dark:bg-slate-800/50 rounded-xl p-0.5 border border-gray-200 dark:border-slate-700 shadow-inner overflow-hidden">
+                  <button 
+                    onClick={() => setOpenFilter(openFilter === 'meter' ? null : 'meter')}
+                    className={`px-4 py-2 text-[10px] font-black uppercase rounded-lg transition-all flex items-center gap-2 ${
+                      openFilter === 'meter' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-blue-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Filter size={12} /> {activeMeter}
+                    <motion.div animate={{ rotate: openFilter === 'meter' ? 90 : 0 }}>
+                      <ChevronRight size={14} />
+                    </motion.div>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {openFilter === 'meter' && (
+                      <motion.div
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 'auto', opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        className="flex items-center gap-1 px-2 border-l border-gray-200 dark:border-slate-700 ml-1 overflow-hidden"
+                      >
+                        {([ 'all', 'prad', 'gaz', 'woda', 'cieplo'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => { setMeterTypeFilter(f); setOpenFilter(null); }}
+                            className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all whitespace-nowrap ${
+                              meterTypeFilter === f 
+                                ? 'text-blue-600 dark:text-amber-400' 
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                          >
+                            {f === 'all' ? 'Wszystkie' : f === 'prad' ? 'Prąd' : f === 'gaz' ? 'Gaz' : f === 'woda' ? 'Woda' : 'Ciepło'}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <button 
@@ -223,7 +262,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
             </div>
 
             {isAddingReading && (
-              <form onSubmit={handleSubmit} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
+              <form onSubmit={handleSubmit} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2 shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 ml-1">Typ Licznika</label>
@@ -242,7 +281,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                     <label className="block text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 ml-1">Stan Licznika</label>
                     <input 
                       type="number"
-                      required
+                      step="any"
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       placeholder="0.00"
@@ -296,7 +335,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                         <td className="px-6 py-4 text-gray-500 dark:text-slate-400 font-medium font-medium">
                           <Calendar size={12} className="inline mr-1.5 opacity-40" /> {reading.date}
                         </td>
-                        <td className="px-6 py-4 text-right font-black dark:text-white text-base">
+                        <td className="px-6 py-4 text-right font-black dark:text-white text-base font-black dark:text-white text-base">
                           {reading.value.toLocaleString(undefined, { minimumFractionDigits: 1 })}
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -324,7 +363,6 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                 <Receipt size={24} className="text-emerald-500" /> Rachunki i Opłaty
               </h3>
 
-              {/* 3 Dropdown Filters in one row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
                 {/* 1. Category Dropdown */}
@@ -352,7 +390,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                       >
                         <button
                           onClick={() => { setBillTypeFilter('all'); setOpenFilter(null); }}
-                          className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-400 transition-colors"
+                          className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-400 transition-colors font-black uppercase tracking-wider"
                         >
                           Wszystkie kategorie
                         </button>
@@ -360,7 +398,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                           <button
                             key={cat.id}
                             onClick={() => { setBillTypeFilter(cat.id); setOpenFilter(null); }}
-                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-300 flex items-center gap-3 transition-colors"
+                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-300 flex items-center gap-3 transition-colors font-black uppercase tracking-wider"
                           >
                             <span>{cat.icon}</span> {cat.label}
                           </button>
@@ -397,7 +435,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                           <button
                             key={f}
                             onClick={() => { setStatusFilter(f); setOpenFilter(null); }}
-                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-300 transition-colors"
+                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-600 dark:text-slate-300 transition-colors font-black uppercase tracking-wider"
                           >
                             {f === 'all' ? 'Wszystkie statusy' : f === 'opłacone' ? 'Zapłacone' : 'Oczekujące'}
                           </button>
@@ -434,9 +472,9 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                           <button
                             key={f}
                             onClick={() => { setTimeFilter(f); setOpenFilter(null); }}
-                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-600 dark:text-slate-300 transition-colors"
+                            className="w-full px-4 py-3 text-left text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-600 dark:text-slate-300 transition-colors font-black uppercase tracking-wider"
                           >
-                            {f === 'all' ? 'Kiedykolwiek' : f === 'past' ? 'Przeszłość' : f === 'current' ? 'Bieżący miesiąc' : 'Przyszłość'}
+                            {f === 'all' ? 'Kiedykolwiek' : f === 'past' ? 'Przeszłość' : f === 'current' ? 'Ten miesiąc' : 'Przyszłość'}
                           </button>
                         ))}
                       </motion.div>
@@ -482,7 +520,7 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                                 {BILL_CATEGORIES.find(c => c.id === bill.extendedProps.billType)?.label || 'Inny'}
                               </span>
                               {bill.extendedProps.rawTitle && bill.extendedProps.rawTitle !== BILL_CATEGORIES.find(c => c.id === bill.extendedProps.billType)?.label && (
-                                <span className="text-[10px] text-gray-400 dark:text-slate-500 italic block mt-0.5">{bill.extendedProps.rawTitle}</span>
+                                <span className="text-[10px] text-gray-400 dark:text-slate-500 italic block mt-0.5 font-black uppercase tracking-wider text-[8px]">{bill.extendedProps.rawTitle}</span>
                               )}
                             </div>
                           </div>
@@ -506,15 +544,6 @@ export function UtilitiesMetersTab({ property }: UtilitiesMetersTabProps) {
                   )}
                 </tbody>
               </table>
-            </div>
-            
-            <div className="flex justify-center pt-4">
-               <button 
-                onClick={() => { setTimeFilter('all'); setStatusFilter('all'); setBillTypeFilter('all'); }}
-                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-blue-500 transition-colors"
-              >
-                Wyczyść filtry
-              </button>
             </div>
           </section>
         )}
