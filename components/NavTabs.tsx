@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: '/analyzer', label: 'Analizator Inwestycyjny' },
   { href: '/deals', label: 'Wyszukiwarka Okazji' },
   { href: '/stats', label: 'Statystyki' },
-  { href: '/database', label: 'Baza Danych' },
+  { href: '/database', label: 'Centrum danych Nieruchomości' },
 ];
 
 export function NavTabs() {

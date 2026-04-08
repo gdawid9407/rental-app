@@ -73,3 +73,25 @@ export const NOTE_CATEGORIES = [
   { id: 'tenant',    label: 'Najemcy',     icon: '👥' },
   { id: 'general',   label: 'Ogólne',      icon: '📝' },
 ] as const;
+
+export interface MeterReading {
+  id: string;
+  property_id: string;
+  type: 'prad' | 'gaz' | 'woda' | 'cieplo';
+  value: number;
+  date: string;
+  previous_value?: number;
+}
+
+export interface LeaseInfo {
+  id: string;
+  property_id: string;
+  tenant_name: string;
+  tenant_contact: string;
+  lease_start: string;
+  lease_end: string;
+  insurance_expiry: string;
+  insurance_company?: string;
+  insurance_policy_number?: string;
+  rent_amount: number;
+}
