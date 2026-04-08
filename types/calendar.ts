@@ -32,6 +32,8 @@ export interface CalendarEvent {
     billType?: BillType;
     propertyId?: string | null;
     timeSlot?: TimeSlot | null;
+    rawTitle?: string;
+    propertyName?: string | null;
   };
 }
 
