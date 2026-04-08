@@ -44,6 +44,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
   const [recurringMonths, setRecurringMonths] = useState<number>(0);
   
   const [internalDate, setInternalDate] = useState(selectedDate);
+  const [isViewMode, setIsViewMode] = useState(false);
   
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRecurringConfirm, setShowRecurringConfirm] = useState(false);
@@ -55,6 +56,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
       setShowRecurringConfirm(false);
       setInternalDate(selectedDate);
       if (selectedEvent && selectedEvent.id) {
+        setIsViewMode(true);
         // Jeśli edycja to mamy wyseparowany rawTitle 
         setTitle(selectedEvent.rawTitle || "");
         setEntryType(selectedEvent.type || 'payment');
@@ -81,6 +83,7 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
         // W handleSave i tak wymuszamy null dla rachunków.
         setTimeSlot((initialTimeSlot as TimeSlot) || null);
         setRecurringMonths(0);
+        setIsViewMode(false);
       }
     }
   }, [isOpen, selectedEvent, defaultBillType, defaultPropertyId, initialTimeSlot]);
@@ -265,6 +268,100 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
                       </>
                     )}
                   </div>
+                </div>
+              ) : isViewMode ? (
+                <div className="p-6 space-y-6 overflow-y-auto">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                        {selectedEvent?.rawTitle || title}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                        <FileText size={14} /> {entryType === 'payment' ? 'Rachunek' : 'Notatka'}
+                      </p>
+                    </div>
+                    {allowDelete && (
+                      <button onClick={() => setIsDeleting(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                        <Trash2 size={20} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Repeat size={20} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Data</p>
+                        <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">{new Date(internalDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                    </div>
+
+                    {entryType === 'payment' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xl">
+                            {BILL_CATEGORIES.find(c => c.id === billType)?.icon || '💰'}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Kategoria</p>
+                            <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">{categoryLabel}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                            <Receipt size={20} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Kwota</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                              {amount ? `${parseFloat(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł` : '—'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${status === 'opłacone' ? 'bg-green-100 dark:bg-green-900/40 text-green-600' : status === 'do_zapłaty' ? 'bg-red-100 dark:bg-red-900/40 text-red-600' : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600'}`}>
+                            {status === 'opłacone' ? '🟢' : status === 'do_zapłaty' ? '🔴' : '🟡'}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Status</p>
+                            <p className={`text-sm font-bold ${status === 'opłacone' ? 'text-green-600 dark:text-green-400' : status === 'do_zapłaty' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                              {status === 'opłacone' ? 'Opłacone' : status === 'do_zapłaty' ? 'Do zapłaty' : 'Planowany'}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {propertyId && (
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                          style={{ backgroundColor: properties.find(p => p.id === propertyId)?.color || '#94a3b8' }}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Mieszkanie</p>
+                          <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                            {properties.find(p => p.id === propertyId)?.name || 'Nieznane'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {entryType === 'note' && (
+                    <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100/50 dark:border-blue-900/30">
+                      <p className="text-xs font-bold text-blue-400 dark:text-blue-500 uppercase tracking-wider mb-2">Treść notatki</p>
+                      <p className="text-sm text-gray-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap italic">
+                        "{title}"
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-6 space-y-4 overflow-y-auto">
@@ -468,10 +565,15 @@ export function EventModal({ isOpen, onClose, selectedDate, initialTimeSlot, sel
                       </button>
                     </div>
                   </div>
+                ) : isViewMode ? (
+                  <>
+                    <button onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm border border-gray-200 dark:border-slate-600">Zamknij</button>
+                    <button onClick={() => setIsViewMode(false)} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-xl shadow-md hover:bg-blue-700 dark:hover:bg-blue-600 hover:shadow-lg transition-all">Edytuj</button>
+                  </>
                 ) : (
                   <>
-                    <button onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm border border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500">Anuluj</button>
-                    <button onClick={handleSave} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-xl shadow-md hover:bg-blue-700 dark:hover:bg-blue-600 hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                    <button onClick={onClose} className="flex-1 py-2 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm border border-gray-200 dark:border-slate-600">Anuluj</button>
+                    <button onClick={handleSave} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-xl shadow-md hover:bg-blue-700 dark:hover:bg-blue-600 hover:shadow-lg transition-all">
                       {selectedEvent?.id ? 'Zapisz zmiany' : 'Utwórz'}
                     </button>
                   </>
