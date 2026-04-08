@@ -206,6 +206,7 @@ export function Calendar({ events, onDateClick, onEventClick }: CalendarProps) {
           dateClick={onDateClick}
           eventClick={onEventClick}
           height="auto"
+          showNonCurrentDates={true}
           datesSet={(arg) => {
             setCurrentDate(arg.view.currentStart);
             setViewTitle(arg.view.title);

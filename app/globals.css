@@ -19,14 +19,34 @@
   --fc-button-border-color: #334155;
   --fc-button-text-color: #f1f5f9;
   --fc-button-active-bg-color: #1e293b;
-  --fc-page-bg-color: #020617;
+  --fc-page-bg-color: #0f172a;
 }
 
 /* Usunięcie obramowania wokół całego kalendarza - styl macOS */
 .fc {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   border: none !important;
+  background-color: transparent !important;
 }
+
+/* Przezroczyste tło dla wszystkich stanów komórek */
+.fc-daygrid-day,
+.fc-day-other,
+.fc-day-past,
+.fc-day-future,
+.fc .fc-scrollgrid,
+.fc-scrollgrid-sync-table,
+.fc-multimonth-month,
+.fc-multimonth-daygrid {
+  background-color: transparent !important;
+}
+
+/* Wygląd dni z sąsiednich miesięcy (faded) */
+.fc-day-other .fc-daygrid-day-number {
+  opacity: 0.55;
+}
+
+
 
 /* Stylizacja nagłówków dni (Pon, Wt...) */
 .fc .fc-col-header-cell {
@@ -69,13 +89,21 @@
   transition: background-color 0.2s;
 }
 
-.fc-daygrid-day:hover {
-  background-color: #f3f4f6;
+.fc-daygrid-day:hover,
+.fc-day-other:hover,
+.fc-day-past:hover,
+.fc-day-future:hover {
+  background-color: #f3f4f6 !important;
 }
 
-.dark .fc-daygrid-day:hover {
-  background-color: #1e293b;
+.dark .fc-daygrid-day:hover,
+.dark .fc-day-other:hover,
+.dark .fc-day-past:hover,
+.dark .fc-day-future:hover {
+  background-color: #1e293b !important;
 }
+
+
 
 /* Stylizacja widoku wielomiesięcznego (Rok) */
 .fc-multimonth {
