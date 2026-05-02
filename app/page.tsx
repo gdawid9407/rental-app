@@ -32,13 +32,23 @@ export default function CalendarPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setIsCheckingUser(false);
-    });
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        console.error('Błąd autoryzacji:', error);
+      } finally {
+        setIsCheckingUser(false);
+      }
+    };
+
+    checkUser();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });
+
     return () => authListener.subscription.unsubscribe();
   }, []);
 
