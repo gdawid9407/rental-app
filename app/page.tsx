@@ -136,6 +136,27 @@ export default function CalendarPage() {
             <button type="submit" className="w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-blue-700 transition shadow-sm">
               {isRegisterMode ? 'Zarejestruj się' : 'Zaloguj'}
             </button>
+            
+            {process.env.NODE_ENV === 'development' && !isRegisterMode && (
+              <button 
+                type="button" 
+                onClick={async () => {
+                  setEmail('test@example.com');
+                  setPassword('tester123');
+                  // Krótkie opóźnienie, aby stan zdążył się zaktualizować (opcjonalne, ale bezpieczne)
+                  setTimeout(async () => {
+                    const { error } = await supabase.auth.signInWithPassword({ 
+                      email: 'test@example.com', 
+                      password: 'tester123' 
+                    });
+                    if (error) setAuthError('Błąd logowania testowego: ' + error.message);
+                  }, 100);
+                }}
+                className="w-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl px-4 py-2 mt-2 text-xs font-bold hover:bg-amber-500/20 transition"
+              >
+                🛠 ZALOGUJ JAKO TESTER (AUTO)
+              </button>
+            )}
           </form>
           <div className="mt-6 text-center">
             <button type="button" onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); setAuthSuccess(''); setNick(''); }}

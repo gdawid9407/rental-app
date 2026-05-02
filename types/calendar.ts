@@ -85,15 +85,27 @@ export interface MeterReading {
   previous_value?: number;
 }
 
+export type WidgetType = 'tenant' | 'lease' | 'insurance' | 'deposit' | 'documents' | 'notes';
+
+export interface WidgetConfig {
+  id: string;
+  type: WidgetType;
+  title: string;
+}
+
 export interface LeaseInfo {
   id: string;
   property_id: string;
+  user_id: string;
+  tenant_contact_id: string | null; // ID kontaktu z tabeli property_contacts
   tenant_name: string | null;
-  tenant_contact: string | null;
+  tenant_contact: string | null; // Numer telefonu dla kompatybilności/szybkiego podglądu
   lease_start: string | null;
   lease_end: string | null;
   insurance_expiry: string | null;
-  insurance_company?: string | null;
-  insurance_policy_number?: string | null;
+  insurance_company: string | null;
+  insurance_policy_number: string | null;
   rent_amount: number;
+  deposit_amount: number | null;
+  widgets_config: WidgetConfig[] | null;
 }

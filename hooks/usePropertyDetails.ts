@@ -48,14 +48,42 @@ export function usePropertyDetails(propertyId: string) {
     if (propertyId && user) fetchAllDetails();
   }, [propertyId, user]);
 
-  const saveLease = async (payload: Partial<LeaseInfo>) => {
+  const saveLease = async (payload: Partial<LeaseInfo>, contactPayload?: Partial<PropertyContact>) => {
     if (!user) return;
 
+    let contactId = payload.tenant_contact_id;
+
+    // 1. Obsługa synchronizacji kontaktu (Najemca)
+    if (contactPayload && contactPayload.name) {
+      if (contactId) {
+        await supabase.from('property_contacts').update({
+          name: contactPayload.name,
+          phone: contactPayload.phone,
+          email: contactPayload.email,
+        }).eq('id', contactId);
+      } else {
+        const { data: newContact, error: cError } = await supabase.from('property_contacts').insert([{
+          property_id: propertyId,
+          user_id: user.id,
+          name: contactPayload.name,
+          phone: contactPayload.phone,
+          email: contactPayload.email,
+          role: `Główny Najemca`
+        }]).select().single();
+        
+        if (cError) console.error("Błąd tworzenia kontaktu:", cError);
+        if (newContact) contactId = newContact.id;
+      }
+    }
+
+    // 2. Zapisywanie umowy
+    const finalPayload = { ...payload, tenant_contact_id: contactId };
+
     if (lease?.id) {
-      const { error } = await supabase.from('property_leases').update(payload).eq('id', lease.id);
+      const { error } = await supabase.from('property_leases').update(finalPayload).eq('id', lease.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from('property_leases').insert([{ ...payload, property_id: propertyId, user_id: user.id }]);
+      const { error } = await supabase.from('property_leases').insert([{ ...finalPayload, property_id: propertyId, user_id: user.id }]);
       if (error) throw error;
     }
     await fetchAllDetails();
