@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { LeaseInfo, MeterReading } from '../types/calendar';
+import { useAuth } from '@/app/providers';
 
 export interface PropertyContact {
   id: string;
@@ -12,16 +13,15 @@ export interface PropertyContact {
 }
 
 export function usePropertyDetails(propertyId: string) {
+  const { user } = useAuth();
   const [lease, setLease] = useState<LeaseInfo | null>(null);
   const [readings, setReadings] = useState<MeterReading[]>([]);
   const [contacts, setContacts] = useState<PropertyContact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAllDetails = async () => {
-    setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) return;
+    setIsLoading(true);
 
     const [leaseRes, readingsRes, contactsRes] = await Promise.all([
       supabase.from('property_leases').select('*').eq('property_id', propertyId).maybeSingle(),
@@ -45,12 +45,10 @@ export function usePropertyDetails(propertyId: string) {
   };
 
   useEffect(() => {
-    if (propertyId) fetchAllDetails();
-  }, [propertyId]);
+    if (propertyId && user) fetchAllDetails();
+  }, [propertyId, user]);
 
   const saveLease = async (payload: Partial<LeaseInfo>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) return;
 
     if (lease?.id) {
@@ -64,8 +62,6 @@ export function usePropertyDetails(propertyId: string) {
   };
 
   const addReading = async (payload: Omit<MeterReading, 'id' | 'property_id' | 'previous_value'>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) return;
 
     const { error } = await supabase.from('meter_readings').insert([{ ...payload, property_id: propertyId, user_id: user.id }]);
@@ -74,8 +70,6 @@ export function usePropertyDetails(propertyId: string) {
   };
 
   const addContact = async (payload: Omit<PropertyContact, 'id' | 'property_id'>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) return;
 
     const { error } = await supabase.from('property_contacts').insert([{ ...payload, property_id: propertyId, user_id: user.id }]);

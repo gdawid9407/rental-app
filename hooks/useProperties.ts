@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Property } from '../types/calendar';
+import { useAuth } from '@/app/providers';
 
 /*
   INSTRUKCJE SQL DO URUCHOMIENIA W PANELU SUPABASE:
@@ -27,19 +28,18 @@ import { Property } from '../types/calendar';
 */
 
 export function useProperties() {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProperties = async () => {
-    setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    
     if (!user) {
       setProperties([]);
       setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const { data, error } = await supabase
       .from('properties')
@@ -56,12 +56,10 @@ export function useProperties() {
   };
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    if (user) fetchProperties();
+  }, [user]);
 
   const addProperty = async (payload: Partial<Property>): Promise<Property> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) throw new Error("Musisz być zalogowany");
 
     const newPayload = { ...payload, user_id: user.id };

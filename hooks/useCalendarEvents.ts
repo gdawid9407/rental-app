@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { CalendarEvent, BILL_CATEGORIES, TimeSlot } from '../types/calendar';
+import { useAuth } from '@/app/providers';
 
 /*
   INSTRUKCJE SQL DO URUCHOMIENIA W PANELU SUPABASE:
@@ -21,22 +22,18 @@ import { CalendarEvent, BILL_CATEGORIES, TimeSlot } from '../types/calendar';
 export type DeleteMode = 'single' | 'category-future' | 'category-past' | 'global-future' | 'global-past';
 
 export function useCalendarEvents() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchEvents = async () => {
-    setIsLoading(true);
-    
-    // Pobranie sesji użytkownika
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    
     if (!user) {
       setEvents([]);
       setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     // Filtrujemy rekordy po user_id oraz pobieramy własne kategorie i notatki
     const [entriesRes, categoriesRes, notesRes] = await Promise.all([
       supabase.from('calendar_entries').select('*, properties(name, color)').eq('user_id', user.id),
@@ -125,12 +122,10 @@ export function useCalendarEvents() {
   };
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    if (user) fetchEvents();
+  }, [user]);
 
   const addEvent = async (payload: any, recurringMonths: number = 0) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
     if (!user) throw new Error("Musisz być zalogowany");
 
     const basePayload = { ...payload, user_id: user.id };

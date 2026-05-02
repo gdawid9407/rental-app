@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useCalendarEvents, type DeleteMode } from '../hooks/useCalendarEvents';
 import { useProperties } from '../hooks/useProperties';
 import { Header } from '../components/Header';
+import { useAuth } from './providers';
 import { NavTabs } from '../components/NavTabs';
 import { Calendar } from '../components/Calendar';
 import { EventModal, type ModalEventState } from '../components/EventModal';
@@ -22,35 +23,13 @@ export default function CalendarPage() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ModalEventState | null>(null);
 
-  const [user, setUser] = useState<{ email?: string; user_metadata?: Record<string, string> } | null>(null);
-  const [isCheckingUser, setIsCheckingUser] = useState(true);
+  const { user, isLoading: isCheckingUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nick, setNick] = useState('');
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error('Błąd autoryzacji:', error);
-      } finally {
-        setIsCheckingUser(false);
-      }
-    };
-
-    checkUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
