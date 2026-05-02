@@ -107,5 +107,6 @@ export interface LeaseInfo {
   insurance_policy_number: string | null;
   rent_amount: number;
   deposit_amount: number | null;
+  lease_notes: string | null;
   widgets_config: WidgetConfig[] | null;
 }

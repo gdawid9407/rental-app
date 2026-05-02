@@ -29,6 +29,8 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
   
   const [activeModal, setActiveModal] = useState<WidgetType | null>(null);
   const [isAddingModule, setIsAddingModule] = useState(false);
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+  const [customTitle, setCustomTitle] = useState('');
   const [showCalendarPrompt, setShowCalendarPrompt] = useState(false);
 
   // Form states (Temporary for modals)
@@ -81,20 +83,26 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
     }
   };
 
-  const addWidget = async (type: WidgetType) => {
+  const addWidget = async (type: WidgetType, title?: string) => {
     const newWidget: WidgetConfig = {
       id: crypto.randomUUID(),
       type,
-      title: WIDGET_LABELS[type].label
+      title: title || WIDGET_LABELS[type].label
     };
     const newConfig = [...currentWidgets, newWidget];
     await saveLease({ widgets_config: newConfig });
     setIsAddingModule(false);
+    setIsCreatingCustom(false);
+    setCustomTitle('');
   };
 
-  const removeWidget = async (id: string) => {
-    const newConfig = currentWidgets.filter(w => w.id !== id);
+  const removeWidget = async (type: WidgetType) => {
+    const confirmDelete = window.confirm(`Czy na pewno chcesz usunąć sekcję "${WIDGET_LABELS[type].label}"? Dane zostaną zachowane w bazie, ale karta zniknie z widoku.`);
+    if (!confirmDelete) return;
+
+    const newConfig = currentWidgets.filter(w => w.type !== type);
     await saveLease({ widgets_config: newConfig });
+    setActiveModal(null);
   };
 
   const handleCreateCalendarEvents = async () => {
@@ -153,7 +161,7 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
               lease={lease} 
               contact={contacts.find(c => c.id === lease?.tenant_contact_id)}
               onEdit={() => handleOpenModal(widget.type)}
-              onRemove={() => removeWidget(widget.id)}
+              onRemove={() => removeWidget(widget.type)}
             />
           ))}
         </AnimatePresence>
@@ -171,24 +179,48 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
               <h3 className="text-xl font-black dark:text-white">Wybierz Moduł</h3>
               <button onClick={() => setIsAddingModule(false)} className="text-gray-400 hover:text-red-500"><X size={24} /></button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {(Object.keys(WIDGET_LABELS) as WidgetType[]).map(type => {
-                const config = WIDGET_LABELS[type];
-                const Icon = config.icon;
-                return (
+            
+            {!isCreatingCustom ? (
+              <div className="grid grid-cols-2 gap-4">
+                {(Object.keys(WIDGET_LABELS) as WidgetType[]).map(type => {
+                  const config = WIDGET_LABELS[type];
+                  const Icon = config.icon;
+                  return (
+                    <button 
+                      key={type}
+                      onClick={() => addWidget(type)}
+                      className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 transition-all group text-center"
+                    >
+                      <div className={`w-12 h-12 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center ${config.color} group-hover:scale-110 transition-transform`}>
+                        <Icon size={24} />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-700 dark:text-slate-300 uppercase tracking-tighter">{config.label}</span>
+                    </button>
+                  );
+                })}
+                <button 
+                  onClick={() => setIsCreatingCustom(true)}
+                  className="col-span-2 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-800 hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+                >
+                  <Plus size={20} className="text-gray-400 group-hover:text-blue-500" />
+                  <span className="text-xs font-bold text-gray-500 group-hover:text-blue-600">Własny...</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Input label="Nazwa nowej sekcji" value={customTitle} onChange={setCustomTitle} placeholder="np. Miejsce postojowe" />
+                <div className="flex gap-2 pt-4">
+                  <button onClick={() => setIsCreatingCustom(false)} className="flex-1 py-3 text-xs font-bold text-gray-500 bg-gray-100 dark:bg-slate-800 rounded-xl">Cofnij</button>
                   <button 
-                    key={type}
-                    onClick={() => addWidget(type)}
-                    className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 transition-all group"
+                    disabled={!customTitle.trim()}
+                    onClick={() => addWidget('notes', customTitle)} 
+                    className="flex-2 px-8 py-3 bg-blue-600 text-white text-xs font-black rounded-xl disabled:opacity-50"
                   >
-                    <div className={`w-12 h-12 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center ${config.color} group-hover:scale-110 transition-transform`}>
-                      <Icon size={24} />
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 dark:text-slate-300">{config.label}</span>
+                    DODAJ MODUŁ
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -206,7 +238,9 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
                 <div className={`p-3 rounded-2xl bg-gray-50 dark:bg-slate-800 ${WIDGET_LABELS[activeModal].color}`}>
                   {React.createElement(WIDGET_LABELS[activeModal].icon, { size: 24 })}
                 </div>
-                <h3 className="text-xl font-black dark:text-white">Edytuj: {WIDGET_LABELS[activeModal].label}</h3>
+                <h3 className="text-xl font-black dark:text-white">
+                  {currentWidgets.find(w => w.type === activeModal)?.title || WIDGET_LABELS[activeModal].label}
+                </h3>
               </div>
               <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-red-500"><X size={24} /></button>
             </div>
@@ -216,9 +250,7 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
                 <div className="space-y-4">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30 flex gap-3">
                     <Info className="text-blue-500 shrink-0" size={18} />
-                    <p className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">
-                      Zmiana danych najemcy zaktualizuje również globalną bazę kontaktów.
-                    </p>
+                    <p className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">Dane najemcy są zsynchronizowane z bazą kontaktów.</p>
                   </div>
                   <Input label="Imię i Nazwisko" value={tempContact.name} onChange={v => setTempContact({...tempContact, name: v})} placeholder="np. Jan Kowalski" />
                   <Input label="Telefon" value={tempContact.phone} onChange={v => setTempContact({...tempContact, phone: v})} placeholder="+48 000 000 000" icon={<Phone size={14}/>} />
@@ -250,17 +282,35 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
                 </div>
               )}
 
-              {/* Inne modale można dodać tutaj */}
+              {activeModal === 'notes' && (
+                <div className="space-y-4">
+                  <label className="block text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Treść notatki</label>
+                  <textarea 
+                    value={tempLease.lease_notes || ''} 
+                    onChange={e => setTempLease({...tempLease, lease_notes: e.target.value})} 
+                    placeholder="Wpisz dowolne uwagi..."
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all font-bold text-sm min-h-[150px] resize-none"
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end gap-3 mt-10">
-              <button onClick={() => setActiveModal(null)} className="px-6 py-3 text-sm font-bold text-gray-500 hover:text-gray-700">Anuluj</button>
+            <div className="flex justify-between items-center mt-10">
               <button 
-                onClick={handleSaveWidget}
-                className="px-8 py-3 bg-blue-600 text-white font-black rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2"
+                onClick={() => removeWidget(activeModal)}
+                className="flex items-center gap-2 text-xs font-bold text-red-400 hover:text-red-600 transition-colors"
               >
-                <Check size={18} /> ZAPISZ ZMIANY
+                <Trash2 size={16} /> USUŃ SEKCJĘ
               </button>
+              <div className="flex gap-3">
+                <button onClick={() => setActiveModal(null)} className="px-6 py-3 text-sm font-bold text-gray-500 hover:text-gray-700">Anuluj</button>
+                <button 
+                  onClick={handleSaveWidget}
+                  className="px-8 py-3 bg-blue-600 text-white font-black rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2"
+                >
+                  <Check size={18} /> ZAPISZ
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -279,7 +329,7 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
             </div>
             <h3 className="text-lg font-black dark:text-white mb-2">Utworzyć harmonogram?</h3>
             <p className="text-sm text-gray-500 dark:text-slate-400 mb-8 leading-relaxed">
-              Wykryto nową umowę. Czy chcesz automatycznie dodać płatności czynszu do kalendarza na okres trwania najmu?
+              Czy chcesz automatycznie dodać płatności czynszu do kalendarza na okres trwania najmu?
             </p>
             <div className="flex flex-col gap-2">
               <button 
@@ -302,8 +352,6 @@ export function TenantLeaseTab({ property }: TenantLeaseTabProps) {
   );
 }
 
-// --- Komponenty pomocnicze ---
-
 function WidgetCard({ widget, lease, contact, onEdit, onRemove }: { 
   widget: WidgetConfig; 
   lease: LeaseInfo | null; 
@@ -311,87 +359,8 @@ function WidgetCard({ widget, lease, contact, onEdit, onRemove }: {
   onEdit: () => void; 
   onRemove: () => void;
 }) {
-  const [showMenu, setShowMenu] = useState(false);
   const config = WIDGET_LABELS[widget.type];
   const Icon = config.icon;
-
-  const renderContent = () => {
-    switch (widget.type) {
-      case 'tenant':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 font-black text-xs border border-blue-100 dark:border-slate-700">
-                {contact?.name?.[0] || lease?.tenant_name?.[0] || '?'}
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-black dark:text-white truncate">{contact?.name || lease?.tenant_name || 'Brak danych'}</p>
-                <p className="text-[10px] text-gray-400 font-bold uppercase truncate">{contact?.role || 'Najemca'}</p>
-              </div>
-            </div>
-            <div className="space-y-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-300">
-                <Phone size={12} className="text-green-500" /> {contact?.phone || lease?.tenant_contact || '—'}
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-300">
-                <Mail size={12} className="text-blue-400" /> {contact?.email || '—'}
-              </div>
-            </div>
-          </div>
-        );
-      case 'lease':
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Czynsz</p>
-                <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{lease?.rent_amount || 0} <small className="text-[10px]">PLN</small></p>
-              </div>
-              <Banknote className="text-gray-200 dark:text-slate-800" size={32} />
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-              <div>
-                <p className="text-[9px] text-gray-400 font-bold uppercase">Start</p>
-                <p className="text-xs font-bold dark:text-white">{lease?.lease_start || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[9px] text-gray-400 font-bold uppercase">Koniec</p>
-                <p className="text-xs font-bold dark:text-white">{lease?.lease_end || '—'}</p>
-              </div>
-            </div>
-          </div>
-        );
-      case 'insurance':
-        const isExpiring = () => {
-          if (!lease?.insurance_expiry) return false;
-          const diff = (new Date(lease.insurance_expiry).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-          return diff >= 0 && diff <= 30;
-        };
-        const alert = isExpiring();
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-start">
-              <p className="text-sm font-bold dark:text-white">{lease?.insurance_company || 'Brak polisy'}</p>
-              {alert && <ShieldAlert size={16} className="text-amber-500 animate-pulse" />}
-            </div>
-            <p className="text-[10px] font-mono text-gray-400 font-bold">{lease?.insurance_policy_number || '—'}</p>
-            <div className={`mt-2 p-2 rounded-xl text-center border ${alert ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
-              <p className="text-[9px] font-black uppercase">Wygasa: {lease?.insurance_expiry || '—'}</p>
-            </div>
-          </div>
-        );
-      case 'deposit':
-        return (
-          <div className="flex flex-col items-center justify-center py-4 text-center">
-            <Banknote className="text-amber-400 mb-2" size={32} />
-            <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{lease?.deposit_amount || 0} <small className="text-xs">PLN</small></p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Suma zabezpieczona</p>
-          </div>
-        );
-      default:
-        return <div className="py-8 text-center text-xs text-gray-400 italic">Sekcja pusta</div>;
-    }
-  };
 
   return (
     <motion.div 
@@ -399,61 +368,107 @@ function WidgetCard({ widget, lease, contact, onEdit, onRemove }: {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="bg-white dark:bg-slate-800/40 p-6 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-500/20 transition-all group relative"
+      className="bg-white dark:bg-slate-800/40 p-6 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all group relative"
     >
       <div className="flex justify-between items-center mb-6">
         <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${config.color}`}>
           <Icon size={14} /> {widget.title}
         </h3>
-        <div className="relative">
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button 
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-1.5 text-gray-300 hover:text-gray-600 dark:hover:text-white transition-colors"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="p-1.5 bg-gray-100 dark:bg-slate-800 rounded-lg text-gray-500 hover:text-blue-500 transition-colors"
           >
-            <MoreVertical size={18} />
+            <Edit2 size={14} />
           </button>
-          
-          <AnimatePresence>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl z-20 overflow-hidden"
-                >
-                  <button 
-                    onClick={() => { onEdit(); setShowMenu(false); }}
-                    className="w-full px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
-                  >
-                    <Edit2 size={14} /> Edytuj sekcję
-                  </button>
-                  <button 
-                    onClick={() => { onRemove(); setShowMenu(false); }}
-                    className="w-full px-4 py-3 text-left text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2 transition-colors"
-                  >
-                    <Trash2 size={14} /> Usuń sekcję
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="p-1.5 bg-red-50 dark:bg-red-900/10 rounded-lg text-red-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 
-      {renderContent()}
-
-      <button 
-        onClick={onEdit}
-        className="absolute inset-x-0 bottom-0 h-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4 bg-gradient-to-t from-blue-500/5 to-transparent pointer-events-none"
-      >
-        <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest bg-white dark:bg-slate-900 px-3 py-1 rounded-full shadow-lg border border-blue-100 dark:border-blue-900/50 pointer-events-auto cursor-pointer">
-          Kliknij aby edytować
-        </span>
-      </button>
+      <div onClick={onEdit} className="cursor-pointer">
+        <WidgetContent widget={widget} lease={lease} contact={contact} />
+      </div>
     </motion.div>
   );
+}
+
+function WidgetContent({ widget, lease, contact }: { widget: WidgetConfig; lease: LeaseInfo | null; contact: any }) {
+  switch (widget.type) {
+    case 'tenant':
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 font-black text-xs border border-blue-100 dark:border-slate-700">
+              {contact?.name?.[0] || lease?.tenant_name?.[0] || '?'}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-black dark:text-white truncate">{contact?.name || lease?.tenant_name || 'Brak danych'}</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase truncate">{contact?.role || 'Najemca'}</p>
+            </div>
+          </div>
+          <div className="space-y-2 pt-2 border-t border-gray-50 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-300">
+              <Phone size={12} className="text-green-500" /> {contact?.phone || lease?.tenant_contact || '—'}
+            </div>
+          </div>
+        </div>
+      );
+    case 'lease':
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Czynsz</p>
+              <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{lease?.rent_amount || 0} <small className="text-[10px]">PLN</small></p>
+            </div>
+            <Banknote className="text-gray-200 dark:text-slate-800" size={32} />
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 dark:border-slate-800">
+            <div>
+              <p className="text-[9px] text-gray-400 font-bold uppercase">Start</p>
+              <p className="text-xs font-bold dark:text-white">{lease?.lease_start || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-gray-400 font-bold uppercase">Koniec</p>
+              <p className="text-xs font-bold dark:text-white">{lease?.lease_end || '—'}</p>
+            </div>
+          </div>
+        </div>
+      );
+    case 'insurance':
+      const diff = lease?.insurance_expiry ? (new Date(lease.insurance_expiry).getTime() - new Date().getTime()) / (1000 * 3600 * 24) : 100;
+      const alert = diff >= 0 && diff <= 30;
+      return (
+        <div className="space-y-4">
+          <p className="text-sm font-bold dark:text-white truncate">{lease?.insurance_company || 'Brak polisy'}</p>
+          <div className={`mt-2 p-2 rounded-xl text-center border ${alert ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+            <p className="text-[9px] font-black uppercase">Wygasa: {lease?.insurance_expiry || '—'}</p>
+          </div>
+        </div>
+      );
+    case 'deposit':
+      return (
+        <div className="flex flex-col items-center justify-center py-2 text-center">
+          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{lease?.deposit_amount || 0} <small className="text-xs">PLN</small></p>
+          <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Suma zabezpieczona</p>
+        </div>
+      );
+    case 'notes':
+      return (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-600 dark:text-slate-400 font-medium line-clamp-4 leading-relaxed">
+            {lease?.lease_notes || 'Brak notatek...'}
+          </p>
+        </div>
+      );
+    default:
+      return <div className="py-8 text-center text-xs text-gray-400 italic">Sekcja pusta</div>;
+  }
 }
 
 function Input({ label, value, onChange, placeholder, type = 'text', icon }: { 
