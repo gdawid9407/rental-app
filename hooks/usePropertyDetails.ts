@@ -19,7 +19,8 @@ export function usePropertyDetails(propertyId: string) {
 
   const fetchAllDetails = async () => {
     setIsLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const [leaseRes, readingsRes, contactsRes] = await Promise.all([
@@ -48,7 +49,8 @@ export function usePropertyDetails(propertyId: string) {
   }, [propertyId]);
 
   const saveLease = async (payload: Partial<LeaseInfo>) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     if (lease?.id) {
@@ -62,7 +64,8 @@ export function usePropertyDetails(propertyId: string) {
   };
 
   const addReading = async (payload: Omit<MeterReading, 'id' | 'property_id' | 'previous_value'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { error } = await supabase.from('meter_readings').insert([{ ...payload, property_id: propertyId, user_id: user.id }]);
@@ -71,7 +74,8 @@ export function usePropertyDetails(propertyId: string) {
   };
 
   const addContact = async (payload: Omit<PropertyContact, 'id' | 'property_id'>) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { error } = await supabase.from('property_contacts').insert([{ ...payload, property_id: propertyId, user_id: user.id }]);

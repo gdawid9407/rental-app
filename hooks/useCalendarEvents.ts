@@ -27,8 +27,9 @@ export function useCalendarEvents() {
   const fetchEvents = async () => {
     setIsLoading(true);
     
-    // Pobranie aktualnie zalogowanego użytkownika
-    const { data: { user } } = await supabase.auth.getUser();
+    // Pobranie sesji użytkownika
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     
     if (!user) {
       setEvents([]);
@@ -128,7 +129,8 @@ export function useCalendarEvents() {
   }, []);
 
   const addEvent = async (payload: any, recurringMonths: number = 0) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error("Musisz być zalogowany");
 
     const basePayload = { ...payload, user_id: user.id };

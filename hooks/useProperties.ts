@@ -32,7 +32,8 @@ export function useProperties() {
 
   const fetchProperties = async () => {
     setIsLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     
     if (!user) {
       setProperties([]);
@@ -59,7 +60,8 @@ export function useProperties() {
   }, []);
 
   const addProperty = async (payload: Partial<Property>): Promise<Property> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error("Musisz być zalogowany");
 
     const newPayload = { ...payload, user_id: user.id };
